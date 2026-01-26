@@ -1,0 +1,5 @@
+title,description,price,stock,category,brand,model,IMEI,condition,grade,storage,color,networkStatus,networkLock,accessoryType,compatibility,oem,accessoryBrand,serviceType,provider,validity,serviceNetwork
+"iPhone 15 Pro 256GB - Blue","Excellent condition iPhone 15 Pro with 256GB storage. Grade A device.",899.99,10,handset,Apple,iPhone 15 Pro,123456789012345,used,A,256GB,Blue,unlocked,,,,,,,,
+"Samsung Galaxy S24 Ultra 512GB","Brand new Samsung Galaxy S24 Ultra. Factory sealed.",1199.99,5,handset,Samsung,Galaxy S24 Ultra,987654321098765,new,A,512GB,Black,unlocked,,,,,,,,
+"iPhone 14 Case - Clear","Premium clear case for iPhone 14 series",12.99,100,accessory,,,,,,,,,case,"iPhone 14,iPhone 14 Pro",aftermarket,Generic,,,,
+"EE Top Up £20","EE network top up voucher worth £20",20.00,50,service_voucher,,,,,,,,,,,,,top_up,EE,30 days,EE

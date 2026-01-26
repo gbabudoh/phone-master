@@ -3,11 +3,24 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Phone Master Theme Colors */
+  --primary: #014f86;
+  --primary-dark: #013a65;
+  --primary-light: #1a6ba3;
+  --accent-grey: #bfb7b6;
+  --accent-cyan: #b3dee2;
+  --accent-cyan-light: #d4eef0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-accent-grey: var(--accent-grey);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-cyan-light: var(--accent-cyan-light);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -22,5 +35,202 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-grey);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Swiper Banner Styles */
+.banner-swiper {
+  width: 100%;
+}
+
+.banner-swiper .swiper-pagination {
+  bottom: 20px !important;
+}
+
+.banner-swiper .swiper-pagination-bullet {
+  background: white !important;
+  opacity: 0.5;
+  width: 12px;
+  height: 12px;
+  margin: 0 6px;
+}
+
+.banner-swiper .swiper-pagination-bullet-active {
+  opacity: 1;
+  background: var(--primary) !important;
+}
+
+.banner-swiper .swiper-slide {
+  height: 100%;
+}
+
+/* Chatbot Message Formatting */
+.chatbot-message ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+}
+
+.chatbot-message ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+}
+
+.chatbot-message ul ul,
+.chatbot-message ol ul {
+  list-style-type: circle;
+}
+
+.chatbot-message ul ul ul,
+.chatbot-message ol ul ul {
+  list-style-type: square;
+}
+
+.chatbot-message li {
+  margin-bottom: 0.25rem;
+}
+
+.chatbot-message code {
+  font-family: var(--font-geist-mono), "Courier New", monospace;
+}
+
+.chatbot-message pre {
+  font-family: var(--font-geist-mono), "Courier New", monospace;
+}
+
+.chatbot-message strong {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.chatbot-message a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.chatbot-message a:hover {
+  color: var(--primary-dark);
+}
+
+/* Swiper Banner Styles */
+.banner-swiper {
+  width: 100%;
+  position: relative;
+}
+
+.banner-swiper .swiper-pagination {
+  bottom: 20px !important;
+  z-index: 20;
+}
+
+.banner-swiper .swiper-pagination-bullet {
+  background: rgba(255, 255, 255, 0.6) !important;
+  opacity: 1 !important;
+  width: 10px;
+  height: 10px;
+  margin: 0 6px;
+  transition: all 0.3s ease;
+}
+
+.banner-swiper .swiper-pagination-bullet-active {
+  background: white !important;
+  width: 30px;
+  border-radius: 5px;
+}
+
+.banner-swiper .swiper-slide {
+  height: 100%;
+}
+
+.banner-swiper-button-prev,
+.banner-swiper-button-next {
+  cursor: pointer;
+}
+
+.banner-swiper-button-prev.swiper-button-disabled,
+.banner-swiper-button-next.swiper-button-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Fade effect styling */
+.swiper-fade .swiper-slide {
+  opacity: 0;
+  transition-property: opacity;
+}
+
+.swiper-fade .swiper-slide.swiper-slide-active {
+  opacity: 1;
+}
+/* Premium Mesh Gradient Background */
+.mesh-gradient {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(at 0% 0%, hsla(205, 98%, 26%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(186, 52%, 79%, 0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(205, 98%, 26%, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(186, 52%, 79%, 0.2) 0px, transparent 50%),
+    radial-gradient(
+      at 50% 100%,
+      hsla(205, 98%, 26%, 0.15) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 100% 100%, hsla(186, 52%, 79%, 0.2) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism Utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-card-heavy {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.glass-header {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
