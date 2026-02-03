@@ -5,7 +5,7 @@ import BannerSlider from '@/components/marketplace/BannerSlider';
 import { IProduct } from '@/types/product';
 
 export default async function Home() {
-  // Fetch featured products (in a real app, this would come from an API)
+  // Fetch featured products
   const featuredProducts: IProduct[] = []; // Placeholder
 
   return (
@@ -19,7 +19,7 @@ export default async function Home() {
       {/* Modern Features Section */}
       <section className="relative px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-16 space-y-4">
+          <div className="text-center mb-16 space-y-6">
             <h2 className="text-5xl font-black tracking-tight text-gray-900 md:text-6xl">
               The <span className="text-primary italic">Ultimate</span> Phone Destination
             </h2>

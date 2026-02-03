@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 import { IBanner } from '@/types/banner';
+import Image from 'next/image';
 
 interface BannerFormProps {
   banner?: IBanner;
@@ -15,6 +16,7 @@ export default function BannerForm({ banner, onSuccess, onCancel }: BannerFormPr
     title: '',
     description: '',
     imageUrl: '',
+    videoUrl: '',
     linkUrl: '',
     linkText: '',
     isActive: true,
@@ -33,6 +35,7 @@ export default function BannerForm({ banner, onSuccess, onCancel }: BannerFormPr
         title: banner.title || '',
         description: banner.description || '',
         imageUrl: banner.imageUrl || '',
+        videoUrl: banner.videoUrl || '',
         linkUrl: banner.linkUrl || '',
         linkText: banner.linkText || '',
         isActive: banner.isActive !== undefined ? banner.isActive : true,
@@ -70,9 +73,18 @@ export default function BannerForm({ banner, onSuccess, onCancel }: BannerFormPr
       }
 
       const data = await response.json();
-      setFormData({ ...formData, imageUrl: data.url });
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload image');
+      
+      if (file.type.startsWith('video/')) {
+        setFormData({ ...formData, videoUrl: data.url, imageUrl: '' });
+      } else {
+        setFormData({ ...formData, imageUrl: data.url, videoUrl: '' });
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to upload image');
+      }
     } finally {
       setUploading(false);
     }
@@ -105,8 +117,12 @@ export default function BannerForm({ banner, onSuccess, onCancel }: BannerFormPr
       }
 
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -160,31 +176,43 @@ export default function BannerForm({ banner, onSuccess, onCancel }: BannerFormPr
 
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
-              Banner Image *
+              Banner Media (Image or Video) *
             </label>
             <input
               type="file"
               ref={fileInputRef}
-              accept="image/jpeg,image/png,image/gif,image/webp"
+              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
               onChange={handleFileUpload}
               className="hidden"
             />
             
-            {formData.imageUrl ? (
-              <div className="relative">
-                <img
-                  src={formData.imageUrl}
-                  alt="Banner preview"
-                  className="h-40 w-full rounded-lg object-cover"
-                />
+            {formData.imageUrl || formData.videoUrl ? (
+              <div className="relative h-64 w-full bg-gray-50 rounded-lg border border-accent-grey/10">
+                {formData.videoUrl ? (
+                  <video
+                    src={formData.videoUrl}
+                    className="h-full w-full rounded-lg object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                  />
+                ) : (
+                  <Image
+                    src={formData.imageUrl}
+                    alt="Banner preview"
+                    fill
+                    className="rounded-lg object-cover"
+                  />
+                )}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100 rounded-lg">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-foreground"
+                     className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-foreground cursor-pointer"
                   >
-                    {uploading ? 'Uploading...' : 'Change Image'}
+                    {uploading ? 'Uploading...' : 'Change Media'}
                   </button>
                 </div>
               </div>
@@ -202,26 +230,17 @@ export default function BannerForm({ banner, onSuccess, onCancel }: BannerFormPr
                   <>
                     <Upload className="h-10 w-10 text-accent-grey" />
                     <span className="mt-2 text-sm font-medium text-foreground/60">
-                      Click to upload image
+                      Click to upload image or video
                     </span>
                     <span className="mt-1 text-xs text-foreground/40">
-                      JPEG, PNG, GIF, WebP (max 5MB)
+                      JPEG, PNG, Video (max 100MB)
                     </span>
                   </>
                 )}
               </div>
             )}
             
-            <div className="mt-2">
-              <span className="text-xs text-foreground/40">Or enter URL directly:</span>
-              <input
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                className="mt-1 w-full rounded-lg border border-accent-grey/20 px-3 py-1.5 text-sm focus:border-primary focus:outline-none"
-              />
-            </div>
+
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -295,7 +314,7 @@ export default function BannerForm({ banner, onSuccess, onCancel }: BannerFormPr
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
               className="h-4 w-4 rounded border-accent-grey/20 text-primary focus:ring-primary"
             />
-            <label htmlFor="isActive" className="text-sm font-medium text-foreground">
+            <label htmlFor="isActive" className="text-sm font-medium text-foreground cursor-pointer">
               Active
             </label>
           </div>
@@ -304,14 +323,14 @@ export default function BannerForm({ banner, onSuccess, onCancel }: BannerFormPr
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-lg border border-accent-grey/20 px-4 py-2 text-foreground transition-colors hover:bg-accent-cyan-light"
+              className="rounded-lg border border-accent-grey/20 px-4 py-2 text-foreground transition-colors hover:bg-accent-cyan-light cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-lg bg-primary px-4 py-2 text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
+              className="rounded-lg bg-primary px-4 py-2 text-white transition-colors hover:bg-primary-dark disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Saving...' : banner ? 'Update' : 'Create'}
             </button>

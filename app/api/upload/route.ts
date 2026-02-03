@@ -1,98 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
-import sharp from 'sharp';
+import { NextResponse } from 'next/server';
 
-// Image size configurations per folder type
-const IMAGE_CONFIGS: Record<string, { width: number; height: number; quality: number }> = {
-  products: { width: 800, height: 800, quality: 85 },
-  banners: { width: 1920, height: 600, quality: 90 },
-  avatars: { width: 200, height: 200, quality: 80 },
-  thumbnails: { width: 300, height: 300, quality: 75 },
-};
+import { getSession } from '@/lib/auth';
+import { minioClient, ensureBucketExists, getPublicImageUrl } from '@/lib/minio';
+import { v4 as uuidv4 } from 'uuid';
 
-const DEFAULT_CONFIG = { width: 1200, height: 1200, quality: 85 };
+const BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'phone-master-images';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
+    // 1. Authenticate User
+    const session = await getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. Parse Form Data
     const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const folder = (formData.get('folder') as string) || 'banners';
+    const file = formData.get('file') as File | null;
+    const folder = (formData.get('folder') as string) || 'uploads';
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.' },
-        { status: 400 }
-      );
+    // 3. Validate File Type
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      return NextResponse.json({ error: 'Only image and video files are allowed' }, { status: 400 });
     }
 
-    // Validate file size (max 10MB before processing)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB.' },
-        { status: 400 }
-      );
-    }
-
-    // Get image config for this folder
-    const config = IMAGE_CONFIGS[folder] || DEFAULT_CONFIG;
-
-    // Create unique filename (always save as webp for better compression)
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 8);
-    const filename = `${timestamp}-${randomStr}.webp`;
-
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', folder);
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    // Process and resize image
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // 4. Prepare File for Upload
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const extension = file.name.split('.').pop() || 'jpg';
+    const filename = `${folder}/${uuidv4()}.${extension}`;
     
-    const processedImage = await sharp(buffer)
-      .resize(config.width, config.height, {
-        fit: 'inside', // Maintain aspect ratio, fit within dimensions
-        withoutEnlargement: true, // Don't upscale smaller images
-      })
-      .webp({ quality: config.quality })
-      .toBuffer();
+    // 5. Upload to MinIO
+    if (!minioClient) {
+      console.error('MinIO client not initialized');
+      return NextResponse.json({ error: 'Storage service unavailable' }, { status: 503 });
+    }
 
-    // Write processed file
-    const filePath = path.join(uploadDir, filename);
-    await writeFile(filePath, processedImage);
+    await ensureBucketExists();
 
-    // Return the public URL
-    const url = `/uploads/${folder}/${filename}`;
+    // Set meta data for content type to ensure browsers display it correctly
+    const metaData = {
+      'Content-Type': file.type,
+    };
 
-    // Get final image dimensions
-    const metadata = await sharp(processedImage).metadata();
+    await minioClient.putObject(BUCKET_NAME, filename, buffer, buffer.length, metaData);
 
-    return NextResponse.json({
-      success: true,
+    // 6. Generate Public URL
+    // Note: This URL assumes the bucket is public or the MinIO instance is configured to redirect/proxy
+    // If MinIO is internal only, we might need a proxy route or presigned URL.
+    // For now, we generate the direct URL.
+    const url = getPublicImageUrl(filename);
+
+    return NextResponse.json({ 
+      success: true, 
       url,
-      filename,
-      dimensions: {
-        width: metadata.width,
-        height: metadata.height,
-      },
-      originalSize: file.size,
-      processedSize: processedImage.length,
+      filename 
     });
-  } catch (error) {
+
+  } catch (error: unknown) {
     console.error('Upload error:', error);
+    const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      { error: message },
       { status: 500 }
     );
   }

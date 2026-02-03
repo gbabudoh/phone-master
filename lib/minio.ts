@@ -27,6 +27,25 @@ export async function ensureBucketExists(): Promise<void> {
     await minioClient.makeBucket(BUCKET_NAME, 'us-east-1');
     console.log(`✅ Created MinIO bucket: ${BUCKET_NAME}`);
   }
+
+  // Ensure public read policy
+  const policy = {
+    Version: '2012-10-17',
+    Statement: [
+      {
+        Effect: 'Allow',
+        Principal: { AWS: ['*'] },
+        Action: ['s3:GetObject'],
+        Resource: [`arn:aws:s3:::${BUCKET_NAME}/*`],
+      },
+    ],
+  };
+
+  try {
+    await minioClient.setBucketPolicy(BUCKET_NAME, JSON.stringify(policy));
+  } catch (err) {
+    console.warn('⚠️ Failed to set bucket policy (ignore if already set):', err);
+  }
 }
 
 /**

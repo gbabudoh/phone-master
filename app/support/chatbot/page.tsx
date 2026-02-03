@@ -84,7 +84,7 @@ export default function ChatbotPage() {
         </p>
       </div>
 
-      <div className="flex h-[600px] flex-col rounded-lg border border-accent-grey/20 bg-white shadow-lg">
+      <div className="flex h-[600px] flex-col rounded-2xl border-2 border-primary/10 bg-white/90 backdrop-blur-sm shadow-2xl ring-1 ring-black/5">
         {/* Messages */}
         <div className="flex-1 space-y-4 overflow-y-auto p-6 scroll-smooth">
           {messages.length === 0 ? (
@@ -148,7 +148,7 @@ export default function ChatbotPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a question..."
-              className="flex-1 rounded-lg border border-accent-grey/20 px-4 py-2 focus:border-primary focus:outline-none"
+              className="flex-1 rounded-lg border border-gray-400 px-4 py-2 focus:border-primary focus:outline-none"
               disabled={loading}
             />
             <button

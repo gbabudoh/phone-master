@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, User, Search, LogOut } from 'lucide-react';
+import { Menu, X, User, Search, Power, LogIn, UserPlus } from 'lucide-react';
+import Image from 'next/image';
 import { useAuth } from '@/components/auth/AuthProvider';
 import RoleBadge from '@/components/auth/RoleBadge';
 
@@ -49,12 +50,29 @@ export default function Header() {
     }
   };
 
+  const getUserDisplayName = () => {
+    if (!user) return '';
+    const firstName = user.profile?.firstName || '';
+    const lastName = user.profile?.lastName || '';
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
+    }
+    return user.email?.split('@')[0] || 'User';
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full glass-header">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center cursor-pointer">
-          <img src="/logo.png" alt="Phone Master" className="h-14 w-auto" />
+          <Image 
+            src="/logo.png" 
+            alt="Phone Master" 
+            width={180} 
+            height={56} 
+            className="h-14 w-auto" 
+            priority
+          />
         </Link>
 
         {/* Desktop Navigation */}
@@ -97,6 +115,7 @@ export default function Header() {
           {user ? (
             <>
               <div className="hidden items-center space-x-3 sm:flex">
+                <span className="text-sm font-medium text-foreground mr-2">{getUserDisplayName()}</span>
                 <RoleBadge role={user.role} className="text-xs px-2 py-0.5" />
                 <Link
                   href={getDashboardUrl()}
@@ -126,7 +145,7 @@ export default function Header() {
                 onClick={handleLogout}
                 className="hidden rounded-lg border border-accent-grey/20 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent-cyan-light sm:flex sm:items-center sm:space-x-2 cursor-pointer"
               >
-                <LogOut className="h-4 w-4" />
+                <Power className="h-4 w-4" />
                 <span>Logout</span>
               </button>
             </>
@@ -134,14 +153,16 @@ export default function Header() {
             <>
               <Link
                 href="/login"
-                className="hidden rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-accent-cyan-light sm:block cursor-pointer"
+                className="hidden items-center rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-accent-cyan-light sm:flex cursor-pointer"
               >
+                <LogIn className="mr-2 h-4 w-4" />
                 Login
               </Link>
               <Link
                 href="/register"
-                className="hidden rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark sm:block cursor-pointer"
+                className="hidden items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark sm:flex cursor-pointer"
               >
+                <UserPlus className="mr-2 h-4 w-4" />
                 Sign Up
               </Link>
             </>
@@ -238,16 +259,18 @@ export default function Header() {
               <>
                 <Link
                   href="/login"
-                  className="block rounded-lg px-3 py-2 text-base font-medium text-foreground hover:bg-accent-cyan-light cursor-pointer"
+                  className="flex items-center rounded-lg px-3 py-2 text-base font-medium text-foreground hover:bg-accent-cyan-light cursor-pointer"
                   onClick={() => setMobileMenuOpen(false)}
                 >
+                  <LogIn className="mr-2 h-4 w-4" />
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="block rounded-lg bg-primary px-3 py-2 text-base font-medium text-white hover:bg-primary-dark cursor-pointer"
+                  className="flex items-center rounded-lg bg-primary px-3 py-2 text-base font-medium text-white hover:bg-primary-dark cursor-pointer"
                   onClick={() => setMobileMenuOpen(false)}
                 >
+                  <UserPlus className="mr-2 h-4 w-4" />
                   Sign Up
                 </Link>
               </>

@@ -143,18 +143,18 @@ export default function AdminBannersPage() {
         <table className="min-w-full divide-y divide-gray-100">
           <thead className="bg-gray-50/50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Order</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Preview</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Title</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Status</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Performance</th>
-              <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-gray-500">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Order</th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Preview</th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Title</th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Performance</th>
+              <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {banners.map((banner, index) => (
               <tr key={banner._id} className="hover:bg-primary/5 transition-colors group">
-                <td className="px-6 py-5">
+                <td className="px-4 py-3">
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleReorder(banner, 'up')}
@@ -173,8 +173,8 @@ export default function AdminBannersPage() {
                     </button>
                   </div>
                 </td>
-                <td className="px-6 py-5">
-                  <div className="relative h-20 w-36 overflow-hidden rounded-2xl border border-white/20 shadow-sm">
+                <td className="px-4 py-3">
+                  <div className="relative h-20 w-32 overflow-hidden rounded-lg border border-white/20 shadow-sm bg-gray-100">
                     <Image
                       src={banner.imageUrl}
                       alt={banner.title}
@@ -183,15 +183,15 @@ export default function AdminBannersPage() {
                     />
                   </div>
                 </td>
-                <td className="px-6 py-5">
+                <td className="px-4 py-3">
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-gray-900">{banner.title}</span>
+                    <span className="text-sm font-bold text-gray-900 truncate max-w-[12rem]">{banner.title}</span>
                     {banner.description && (
-                      <span className="text-xs text-gray-500 truncate max-w-xs">{banner.description}</span>
+                      <span className="text-xs text-gray-500 truncate max-w-[12rem]">{banner.description}</span>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-5">
+                <td className="px-4 py-3">
                   <button
                     onClick={() => handleToggleActive(banner)}
                     className={`inline-flex items-center space-x-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer ${
@@ -213,13 +213,13 @@ export default function AdminBannersPage() {
                     )}
                   </button>
                 </td>
-                <td className="px-6 py-5">
+                <td className="px-4 py-3">
                   <div className="flex flex-col">
                     <span className="text-sm font-black text-gray-900">{banner.clicks || 0}</span>
                     <span className="text-[10px] font-bold uppercase text-gray-400">Total Clicks</span>
                   </div>
                 </td>
-                <td className="px-6 py-5 text-right">
+                <td className="px-4 py-3 text-right whitespace-nowrap">
                   <div className="flex items-center justify-end space-x-2">
                     <button
                       onClick={() => {

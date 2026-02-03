@@ -6,14 +6,22 @@ import { ShoppingBag, Heart, Package, Clock, Search, ArrowRight } from 'lucide-r
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/auth/AuthProvider';
 import RoleBadge from '@/components/auth/RoleBadge';
+import SellerOnboardingCard from '@/components/buyer/SellerOnboardingCard';
+
+interface Order {
+  _id: string;
+  items: unknown[];
+  totalAmount: number;
+  status: string;
+}
 
 export default function BuyerDashboardPage() {
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
     wishlistItems: 0,
   });
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrders] = useState<Order[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -44,6 +52,11 @@ export default function BuyerDashboardPage() {
             </p>
           </div>
           {user && <RoleBadge role={user.role} />}
+        </div>
+        
+        {/* Seller Onboarding Card */}
+        <div className="mt-8">
+          <SellerOnboardingCard />
         </div>
       </div>
 

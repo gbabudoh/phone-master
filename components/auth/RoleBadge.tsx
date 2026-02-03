@@ -11,7 +11,7 @@ interface RoleBadgeProps {
 const roleConfig: Record<string, { label: string; icon: typeof UserCircle; color: string }> = {
   buyer: {
     label: 'Buyer',
-    icon: UserCircle,
+    icon: User,
     color: 'bg-blue-100 text-blue-800 border-blue-200',
   },
   personal_seller: {

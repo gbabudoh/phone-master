@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { Swiper as SwiperType } from 'swiper';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation, EffectFade, Keyboard } from 'swiper/modules';
 import Image from 'next/image';
@@ -16,7 +17,7 @@ export default function BannerSlider() {
   const [banners, setBanners] = useState<IBanner[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAutoplay, setIsAutoplay] = useState(true);
-  const swiperRef = useRef<any>(null);
+  const swiperRef = useRef<{ swiper: SwiperType } | null>(null);
 
   useEffect(() => {
     fetchBanners();
@@ -62,9 +63,9 @@ export default function BannerSlider() {
   const toggleAutoplay = () => {
     if (swiperRef.current) {
       if (isAutoplay) {
-        swiperRef.current.autoplay.stop();
+        swiperRef.current.swiper.autoplay.stop();
       } else {
-        swiperRef.current.autoplay.start();
+        swiperRef.current.swiper.autoplay.start();
       }
       setIsAutoplay(!isAutoplay);
     }
@@ -123,7 +124,16 @@ export default function BannerSlider() {
         {banners.map((banner, index) => (
           <SwiperSlide key={banner._id || `banner-${index}`}>
             <div className="relative h-full w-full overflow-hidden bg-gray-200">
-              {banner.imageUrl ? (
+              {banner.videoUrl ? (
+                <video
+                  src={banner.videoUrl}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : banner.imageUrl ? (
                 <Image
                   src={banner.imageUrl}
                   alt={banner.title || 'Banner'}
@@ -142,7 +152,7 @@ export default function BannerSlider() {
               )}
               
               {/* Gradient Overlay for better text readability */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               
               {/* Content Overlay */}
               {(banner.title || banner.description || banner.linkUrl) && (

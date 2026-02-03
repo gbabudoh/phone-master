@@ -27,6 +27,7 @@ const navItems = [
   { href: '/admin/products', label: 'Products', icon: ShoppingBag },
   { href: '/admin/transactions', label: 'Transactions', icon: CreditCard },
   { href: '/admin/banners', label: 'Banners', icon: Image },
+  { href: '/admin/pages', label: 'Content Pages', icon: LayoutDashboard },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

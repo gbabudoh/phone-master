@@ -3,6 +3,7 @@ export interface IBanner {
   title: string;
   description?: string;
   imageUrl: string;
+  videoUrl?: string;
   linkUrl?: string; // Optional link when banner is clicked
   linkText?: string; // Text for the link button
   isActive: boolean;
