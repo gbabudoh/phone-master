@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Shield, CheckCircle2, XCircle, Loader2, AlertTriangle, Info } from 'lucide-react';
-import { checkIMEI } from '@/lib/ai/gemini-api';
 import { cn } from '@/lib/utils';
 
 export default function ImeiChecker() {
@@ -12,7 +11,13 @@ export default function ImeiChecker() {
     isValid: boolean;
     isBlacklisted: boolean;
     status: string;
-    details?: any;
+    details?: {
+      tac?: string;
+      manufacturer?: string;
+      model?: string;
+      recommendation?: string;
+      warning?: string;
+    };
   } | null>(null);
 
   const handleCheck = async () => {
@@ -22,9 +27,15 @@ export default function ImeiChecker() {
     setResult(null);
 
     try {
-      const checkResult = await checkIMEI(imei);
+      const response = await fetch('/api/imei', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imei }),
+      });
+      const checkResult = await response.json();
       setResult(checkResult);
     } catch (error) {
+      console.error('IMEI check failed:', error);
       setResult({
         isValid: false,
         isBlacklisted: false,
@@ -44,15 +55,15 @@ export default function ImeiChecker() {
 
   const getStatusIcon = () => {
     if (!result) return null;
-    if (result.isBlacklisted) return <XCircle className="h-6 w-6 text-red-600" />;
-    if (!result.isValid) return <AlertTriangle className="h-6 w-6 text-yellow-600" />;
-    return <CheckCircle2 className="h-6 w-6 text-green-600" />;
+    if (result.isBlacklisted) return <XCircle className="h-6 w-6 text-red-600 cursor-pointer" />;
+    if (!result.isValid) return <AlertTriangle className="h-6 w-6 text-yellow-600 cursor-pointer" />;
+    return <CheckCircle2 className="h-6 w-6 text-green-600 cursor-pointer" />;
   };
 
   return (
     <div className="rounded-lg border border-accent-grey/20 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center space-x-2">
-        <Shield className="h-6 w-6 text-primary" />
+        <Shield className="h-6 w-6 text-primary cursor-pointer" />
         <h2 className="text-xl font-semibold">Check IMEI Status</h2>
       </div>
       <p className="mb-6 text-sm text-foreground/60">
@@ -73,8 +84,8 @@ export default function ImeiChecker() {
             maxLength={15}
             className="w-full rounded-lg border-2 border-accent-grey/20 bg-white px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <div className="mt-2 flex items-center space-x-2 text-xs text-foreground/60">
-            <Info className="h-4 w-4" />
+        <div className="mt-2 flex items-center space-x-2 text-xs text-foreground/60">
+            <Info className="h-4 w-4 cursor-pointer" />
             <span>Find IMEI: Dial *#06# or check Settings → About Phone</span>
           </div>
         </div>
@@ -82,7 +93,7 @@ export default function ImeiChecker() {
         <button
           onClick={handleCheck}
           disabled={loading || imei.length !== 15}
-          className="w-full rounded-lg bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-lg bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? (
             <span className="flex items-center justify-center space-x-2">
@@ -120,6 +131,11 @@ export default function ImeiChecker() {
                     {result.details.manufacturer && (
                       <p className="text-sm">
                         <span className="font-medium">Manufacturer:</span> {result.details.manufacturer}
+                      </p>
+                    )}
+                    {result.details.model && (
+                      <p className="text-sm">
+                        <span className="font-medium">Model:</span> {result.details.model}
                       </p>
                     )}
                     {result.details.recommendation && (

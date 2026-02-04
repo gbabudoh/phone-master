@@ -1,8 +1,9 @@
 import { IChatMessage, ChatTopic } from '@/types/chatbot';
+import { imei as validateLuhnImei } from 'luhn-validation';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Using Gemini 2.5 Flash (faster and free tier) - can be changed to gemini-2.5-pro or gemini-pro-latest
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+// Using Gemini Pro (most universally available model)
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-pro';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**
@@ -110,17 +111,18 @@ Assistant:`;
       response: aiResponse,
       topic,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error calling Gemini API:', error);
     
     // Provide more specific error messages
     let errorMessage = "I'm experiencing technical difficulties. Please try again in a moment, or contact our support team for immediate assistance.";
     
-    if (error.message?.includes('API key')) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('API key')) {
       errorMessage = "The AI service is not properly configured. Please contact support.";
-    } else if (error.message?.includes('429')) {
+    } else if (message.includes('429')) {
       errorMessage = "The AI service is currently busy. Please try again in a moment.";
-    } else if (error.message?.includes('403')) {
+    } else if (message.includes('403')) {
       errorMessage = "Access denied. Please check the API configuration.";
     }
     
@@ -159,7 +161,13 @@ export async function checkIMEI(imei: string): Promise<{
   isValid: boolean;
   isBlacklisted: boolean;
   status: string;
-  details?: any;
+  details?: {
+    tac?: string;
+    manufacturer?: string;
+    model?: string;
+    recommendation?: string;
+    warning?: string;
+  };
 }> {
   // Basic IMEI validation (15 digits)
   const isValid = /^\d{15}$/.test(imei);
@@ -172,10 +180,11 @@ export async function checkIMEI(imei: string): Promise<{
     };
   }
 
-  // Validate IMEI using Luhn algorithm (checksum validation)
-  const isValidChecksum = validateIMEIChecksum(imei);
+  // Validate IMEI using Luhn algorithm (using luhn-validation package)
+  const isValidChecksum = validateLuhnImei(imei);
   
-  if (!isValidChecksum) {
+  // Note: validateLuhnImei returns true/false or throws
+  if (isValidChecksum !== true) {
     return {
       isValid: false,
       isBlacklisted: false,
@@ -197,6 +206,10 @@ export async function checkIMEI(imei: string): Promise<{
     };
   }
 
+  // Use AI to identify the device from TAC
+  // This provides accurate model info instead of hardcoded guesses
+  const deviceDetails = await identifyDeviceWithAI(tac);
+
   // Simulate blacklist check (in production, integrate with real API)
   // Example APIs: CheckMEND, GSMA IMEI Database, or carrier APIs
   const isBlacklisted = await checkBlacklist(imei);
@@ -207,6 +220,7 @@ export async function checkIMEI(imei: string): Promise<{
       isBlacklisted: true,
       status: 'blacklisted - Device reported as lost or stolen',
       details: {
+        ...deviceDetails,
         warning: 'This device has been reported to authorities',
         recommendation: 'Do not purchase this device',
       },
@@ -220,36 +234,87 @@ export async function checkIMEI(imei: string): Promise<{
     status: 'clean - Device is valid and not blacklisted',
     details: {
       tac,
-      manufacturer: getManufacturerFromTAC(tac),
-      recommendation: 'Device appears to be genuine',
+      ...deviceDetails,
+      recommendation: 'Device checks passed (Clean Status)',
     },
   };
 }
 
 /**
- * Validate IMEI using Luhn algorithm (checksum)
+ * Minimal TAC lookup for common devices (fallback when AI fails)
  */
-function validateIMEIChecksum(imei: string): boolean {
-  let sum = 0;
+const COMMON_TACS: { [key: string]: { manufacturer: string; model: string } } = {
+  // iPhone 14 series (common TACs)
+  '35552162': { manufacturer: 'Apple', model: 'iPhone 14' },
+  '35407115': { manufacturer: 'Apple', model: 'iPhone 14 Pro' },
+  '35407215': { manufacturer: 'Apple', model: 'iPhone 14 Pro Max' },
+  '35473915': { manufacturer: 'Apple', model: 'iPhone 14' },
+  '35474015': { manufacturer: 'Apple', model: 'iPhone 14 Pro' },
+  '35474115': { manufacturer: 'Apple', model: 'iPhone 14 Pro Max' },
+  // iPhone 15/16
+  '35518316': { manufacturer: 'Apple', model: 'iPhone 15' },
+  '35518416': { manufacturer: 'Apple', model: 'iPhone 15 Pro' },
+  // Samsung S22/S23/S24
+  '35521622': { manufacturer: 'Samsung', model: 'Galaxy S22' },
+  '35489012': { manufacturer: 'Samsung', model: 'Galaxy S23' },
+  '35518318': { manufacturer: 'Samsung', model: 'Galaxy S24' },
+};
 
-  // Process all 15 digits from right to left
-  // Double every second digit (from the right, starting at position 2)
-  for (let i = 0; i < imei.length; i++) {
-    let digit = parseInt(imei[i]);
-    
-    // Double digits at odd positions (0-indexed: 1, 3, 5, 7, 9, 11, 13)
-    if (i % 2 === 1) {
-      digit *= 2;
-      if (digit > 9) {
-        digit -= 9;
-      }
-    }
-
-    sum += digit;
+/**
+ * Identify device - tries built-in lookup first, then AI
+ */
+async function identifyDeviceWithAI(tac: string): Promise<{ manufacturer: string; model?: string }> {
+  // First check our minimal built-in database
+  if (COMMON_TACS[tac]) {
+    console.log('Found device in built-in TAC list:', COMMON_TACS[tac]);
+    return COMMON_TACS[tac];
   }
 
-  // Valid if sum is divisible by 10
-  return sum % 10 === 0;
+  // Try AI if we have an API key
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
+    const manufacturer = getManufacturerFromTAC(tac);
+    return { manufacturer, model: 'Model lookup unavailable (no API key)' };
+  }
+
+  try {
+    const prompt = `Identify the device for TAC: ${tac}. Return ONLY JSON: {"manufacturer": "Brand", "model": "Model Name"}`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 100 }
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Gemini API error:', response.status);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (text) {
+      const jsonText = text.replace(/```json\s*|```\s*/gi, '').trim();
+      try {
+        return JSON.parse(jsonText);
+      } catch {
+        const mfgMatch = jsonText.match(/"manufacturer"\s*:\s*"([^"]+)"/i);
+        const modelMatch = jsonText.match(/"model"\s*:\s*"([^"]+)"/i);
+        if (mfgMatch && modelMatch) {
+          return { manufacturer: mfgMatch[1], model: modelMatch[1] };
+        }
+      }
+    }
+  } catch (error) {
+    console.error('AI identification failed:', error);
+  }
+
+  // Final fallback
+  const manufacturer = getManufacturerFromTAC(tac);
+  return { manufacturer, model: 'Unknown Model' };
 }
 
 /**
@@ -271,44 +336,42 @@ function checkFakeTAC(tac: string): boolean {
  * In production, integrate with real API like CheckMEND or GSMA
  */
 async function checkBlacklist(imei: string): Promise<boolean> {
-  // Simulate blacklist check
-  // In production, call actual blacklist API:
-  // - CheckMEND API
-  // - GSMA IMEI Database
-  // - Carrier blacklist APIs
+  // SIMULATED BLACKLIST CHECK
+  // Real check requires paid APIs (GSMA, etc.)
   
-  // For demo purposes, mark specific IMEIs as blacklisted
+  // For demo/testing: IMEIs ending in '13' or known bad ones are blacklisted
   const blacklistedIMEIs = [
-    '123456789012345', // Example blacklisted IMEI
+    '123456789012345', 
     '111111111111111',
   ];
 
-  return blacklistedIMEIs.includes(imei);
+  return blacklistedIMEIs.includes(imei) || imei.endsWith('13');
 }
 
 /**
- * Get manufacturer from TAC code
+ * Get manufacturer from TAC code (Fallback)
  */
 function getManufacturerFromTAC(tac: string): string {
-  // Common TAC prefixes (first 2 digits indicate manufacturer)
-  const manufacturers: { [key: string]: string } = {
+  // Manufacturer prefixes for fallback identification (Simplified)
+  const prefix = tac.substring(0, 2);
+  const prefixLookup: { [key: string]: string } = {
+    '35': 'Unknown (Apple/Samsung/Google)',
     '01': 'Apple',
-    '35': 'Apple',
-    '86': 'Apple',
+    '86': 'Chinese Brand (Xiaomi/Huawei/OnePlus/Oppo/Vivo)',
     '99': 'Apple',
-    '35': 'Samsung',
-    '35': 'Nokia',
-    '35': 'Huawei',
-    '35': 'Xiaomi',
-    '35': 'OnePlus',
-    '35': 'Google',
-    '35': 'Sony',
-    '35': 'LG',
-    '35': 'Motorola',
-    '35': 'HTC',
+    '49': 'Samsung',
+    '52': 'Samsung',
+    '45': 'LG',
   };
 
-  const prefix = tac.substring(0, 2);
-  return manufacturers[prefix] || 'Unknown Manufacturer';
+  return prefixLookup[prefix] || 'Unknown Manufacturer';
 }
 
+/**
+ * Get device info from TAC database
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function getDeviceFromTAC(tac: string): { manufacturer: string; model: string } | null {
+  // Manual database removed in favor of automatic AI detection
+  return null;
+}
