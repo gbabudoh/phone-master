@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Lock, Mail } from 'lucide-react';
+import Link from 'next/link';
+import { Lock, Mail, ArrowLeft, MessageCircle } from 'lucide-react';
 
 interface ContentPage {
   title: string;
@@ -9,79 +10,137 @@ interface ContentPage {
   updatedAt: string;
 }
 
+function Skeleton() {
+  return (
+    <div className="flex flex-col gap-10 pb-20">
+      <div className="border-b border-gray-100 bg-white px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="mx-auto mb-5 h-16 w-16 animate-pulse rounded-2xl bg-gray-100" />
+          <div className="mx-auto mb-3 h-9 w-64 animate-pulse rounded-xl bg-gray-100" />
+          <div className="mx-auto h-4 w-40 animate-pulse rounded-lg bg-gray-100" />
+        </div>
+      </div>
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5 space-y-4">
+          {[80, 60, 90, 50, 75, 65, 85, 55].map((w, i) => (
+            <div key={i} className="h-3 animate-pulse rounded-full bg-gray-100" style={{ width: `${w}%` }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NotFound({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-32 text-center px-4">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
+        <Lock className="h-8 w-8 text-gray-400" />
+      </div>
+      <h1 className="text-xl font-black text-gray-800">{label} Unavailable</h1>
+      <p className="mt-2 max-w-sm text-sm font-medium text-gray-500">
+        This document is currently unavailable. Please check back later or contact our support team.
+      </p>
+      <Link
+        href="/"
+        className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-black text-white shadow-md shadow-primary/20 transition-all hover:bg-primary-dark active:scale-95"
+      >
+        Back to Home
+      </Link>
+    </div>
+  );
+}
+
 export default function PrivacyPage() {
   const [page, setPage] = useState<ContentPage | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchContent();
+    fetch('/api/pages/privacy')
+      .then((r) => r.json())
+      .then((data) => { if (data.page) setPage(data.page); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const fetchContent = async () => {
-    try {
-      const response = await fetch('/api/pages/privacy');
-      const data = await response.json();
-      if (data.page) {
-        setPage(data.page);
-      }
-    } catch (error) {
-      console.error('Failed to fetch privacy policy:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-      </div>
-    );
-  }
-
-  if (!page) {
-    return (
-      <div className="flex h-screen items-center justify-center flex-col">
-        <h1 className="text-2xl font-bold text-gray-900">Content Not Found</h1>
-        <p className="text-gray-500 mt-2">The Privacy Policy is currently unavailable.</p>
-      </div>
-    );
-  }
+  if (loading) return <Skeleton />;
+  if (!page) return <NotFound label="Privacy Policy" />;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-4">
-          <Lock className="h-8 w-8 text-primary" />
-        </div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">{page.title}</h1>
-        <p className="mt-4 text-lg text-gray-500">
-          Last updated: {new Date(page.updatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-        </p>
-      </div>
+    <div className="flex flex-col gap-10 pb-20">
 
-      {/* Content Card */}
-      <div className="rounded-3xl border border-white/20 bg-white/60 backdrop-blur-xl shadow-xl p-8 md:p-12 space-y-8">
-        
-        <div 
-            className="prose prose-lg text-gray-600 max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-headings:mb-4 prose-p:mb-4 prose-li:mb-2 prose-strong:text-gray-900" 
-            dangerouslySetInnerHTML={{ __html: page.content }} 
-        />
-
-        <div className="border-t border-gray-100 pt-8 mt-8">
-          <div className="rounded-2xl bg-gray-50 p-6 flex items-start space-x-4">
-            <Mail className="h-6 w-6 text-primary mt-1" />
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">Contact Us</h3>
-              <p className="text-gray-600 mt-1">
-                If you have questions or comments about this Privacy Policy, please contact us at:{' '}
-                <a href="mailto:privacy@phonemaster.com" className="text-primary hover:underline font-medium">
-                  privacy@phonemaster.com
-                </a>
-              </p>
-            </div>
+      {/* Hero */}
+      <section className="border-b border-gray-100 bg-white px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <Link
+            href="/"
+            className="mb-6 inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-primary transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Home
+          </Link>
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Lock className="h-8 w-8 text-primary" />
           </div>
+          <h1 className="text-4xl font-black tracking-tight text-gray-900 md:text-5xl">
+            {page.title}
+          </h1>
+          <p className="mt-3 text-sm font-medium text-gray-400">
+            Last updated:{' '}
+            <span className="font-bold text-gray-600">
+              {new Date(page.updatedAt).toLocaleDateString('en-GB', {
+                day: 'numeric', month: 'long', year: 'numeric',
+              })}
+            </span>
+          </p>
+        </div>
+      </section>
+
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
+
+        {/* Content */}
+        <div className="rounded-2xl bg-white px-8 py-10 shadow-sm ring-1 ring-black/5 md:px-12">
+          <div
+            className="prose prose-gray max-w-none
+              prose-headings:font-black prose-headings:text-gray-900 prose-headings:tracking-tight
+              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+              prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3
+              prose-p:text-gray-600 prose-p:leading-relaxed prose-p:font-medium
+              prose-li:text-gray-600 prose-li:font-medium
+              prose-strong:text-gray-800 prose-strong:font-black
+              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+              prose-code:rounded prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-code:text-gray-800"
+            dangerouslySetInnerHTML={{ __html: page.content }}
+          />
+        </div>
+
+        {/* Contact CTA */}
+        <div className="mt-6 flex flex-col items-start gap-4 rounded-2xl bg-primary/5 px-6 py-6 ring-1 ring-primary/10 sm:flex-row sm:items-center">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <Mail className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-gray-900">Questions about your data?</p>
+            <p className="mt-1 text-sm font-medium text-gray-500">
+              Contact our privacy team at{' '}
+              <a href="mailto:privacy@phonemaster.com" className="font-bold text-primary hover:underline">
+                privacy@phonemaster.com
+              </a>
+            </p>
+          </div>
+          <Link
+            href="/support"
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-primary/20 bg-white px-4 py-2.5 text-sm font-black text-primary transition-all hover:bg-primary/5"
+          >
+            <MessageCircle className="h-4 w-4" /> Get Support
+          </Link>
+        </div>
+
+        {/* Related links */}
+        <div className="mt-6 flex flex-wrap items-center gap-4 text-sm font-semibold text-gray-400">
+          <span>Also read:</span>
+          <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
+          <Link href="/support/knowledge-base" className="text-primary hover:underline">Knowledge Base</Link>
+          <Link href="/contact" className="text-primary hover:underline">Contact Us</Link>
         </div>
 
       </div>

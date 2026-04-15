@@ -4,7 +4,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { LogIn, Mail, Lock, Smartphone, Shield, Zap, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import {
+  LogIn, Mail, Lock, Smartphone, Shield,
+  ArrowRight, Loader2, Eye, EyeOff, CheckCircle,
+} from 'lucide-react';
+
+const TRUST_ITEMS = [
+  { icon: Shield, text: 'Escrow-protected transactions' },
+  { icon: CheckCircle, text: 'IMEI verification on every device' },
+  { icon: Smartphone, text: 'Wholesale, retail & personal tiers' },
+];
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -22,207 +31,192 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      
-      // Fetch user to get role for redirect
+
       const response = await fetch('/api/auth/me');
       if (response.ok) {
         const data = await response.json();
-        const userRole = data.user?.role;
-        
-        // Redirect based on role
-        switch (userRole) {
-          case 'personal_seller':
-            router.push('/personal-seller/dashboard');
-            break;
-          case 'retail_seller':
-            router.push('/retail-seller/dashboard');
-            break;
-          case 'wholesale_seller':
-            router.push('/wholesale-seller/dashboard');
-            break;
-          case 'admin':
-            router.push('/admin/dashboard');
-            break;
-          case 'buyer':
-            router.push('/buyer/dashboard');
-            break;
-          default:
-            router.push('/');
+        switch (data.user?.role) {
+          case 'personal_seller':  router.push('/personal-seller/dashboard');  break;
+          case 'retail_seller':    router.push('/retail-seller/dashboard');    break;
+          case 'wholesale_seller': router.push('/wholesale-seller/dashboard'); break;
+          case 'admin':            router.push('/admin/dashboard');            break;
+          case 'buyer':            router.push('/buyer/dashboard');            break;
+          default:                 router.push('/');
         }
       } else {
         router.push('/buyer/dashboard');
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Login failed';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-accent-cyan-light/20 to-primary/5 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(1, 79, 134, 0.15) 1px, transparent 0)`,
-          backgroundSize: '24px 24px'
-        }}></div>
-      </div>
-      
-      <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="mb-8 text-center lg:hidden">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-lg">
-              <Smartphone className="h-8 w-8" />
+    <div className="flex min-h-screen">
+
+      {/* ── Left branding panel (desktop only) ── */}
+      <div className="hidden lg:flex lg:w-[44%] xl:w-[40%] flex-col bg-linear-to-br from-primary via-[#013a63] to-[#01294a] px-12 py-16 relative overflow-hidden">
+        <div className="absolute -top-32 -right-32 h-[480px] w-[480px] rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 h-[480px] w-[480px] rounded-full bg-cyan-400/10 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col h-full">
+          <Link href="/" className="flex items-center gap-3 mb-16">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+              <Smartphone className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground">Phone Master</h1>
-            <p className="mt-2 text-foreground/60">Welcome back</p>
+            <span className="text-xl font-black text-white">Phone Master</span>
+          </Link>
+
+          <div className="flex-1">
+            <h2 className="text-4xl font-black leading-tight text-white mb-4">
+              Welcome back to<br />
+              <span className="text-cyan-300">Phone Master</span>
+            </h2>
+            <p className="text-lg font-medium text-white/60 mb-12">
+              Your secure marketplace for buying and selling mobile devices — wholesale, retail, or personal.
+            </p>
+
+            <div className="flex flex-col gap-5">
+              {TRUST_ITEMS.map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
+                    <Icon className="h-5 w-5 text-cyan-300" />
+                  </div>
+                  <p className="text-sm font-semibold text-white/80">{text}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Desktop Header */}
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold text-foreground">Sign In</h2>
-            <p className="mt-2 text-foreground/60">Enter your credentials to continue</p>
+          <p className="text-xs text-white/30 mt-12">
+            © {new Date().getFullYear()} Phone Master. All rights reserved.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Right form panel ── */}
+      <div className="flex flex-1 flex-col items-center justify-center bg-gray-50 px-4 py-12 sm:px-8">
+
+        {/* Mobile brand header */}
+        <div className="mb-8 text-center lg:hidden">
+          <Link href="/" className="inline-flex items-center gap-2 mb-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
+              <Smartphone className="h-5 w-5" />
+            </div>
+            <span className="text-lg font-black text-gray-900">Phone Master</span>
+          </Link>
+        </div>
+
+        <div className="w-full max-w-md">
+          <div className="mb-8">
+            <h1 className="text-3xl font-black text-gray-900">Sign in</h1>
+            <p className="mt-2 text-sm font-medium text-gray-500">
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="font-bold text-primary hover:underline">
+                Create one free
+              </Link>
+            </p>
           </div>
 
-          <div className="rounded-2xl border border-accent-grey/20 bg-white/80 backdrop-blur-sm p-8 shadow-xl">
+          <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-black/5">
             {error && (
-              <div className="mb-6 animate-in slide-in-from-top-2 rounded-lg border border-red-200 bg-red-50 p-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100">
-                    <span className="text-xs font-bold text-red-600">!</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-red-800">Login Failed</p>
-                    <p className="mt-1 text-sm text-red-600">{error}</p>
-                  </div>
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 mt-0.5">
+                  <span className="text-xs font-black text-red-600">!</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-red-800">Login Failed</p>
+                  <p className="mt-0.5 text-sm text-red-600">{error}</p>
                 </div>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email */}
               <div>
-                <label htmlFor="email" className="mb-2 block text-sm font-semibold text-foreground">
+                <label htmlFor="email" className="mb-1.5 block text-sm font-bold text-gray-700">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground/40 transition-colors" />
+                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     id="email"
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-xl border-2 border-accent-grey/20 bg-white py-3 pl-12 pr-4 text-foreground transition-all focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="your@email.com"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-10 pr-4 text-sm font-medium text-gray-900 placeholder-gray-400 outline-none transition-all focus:border-primary/50 focus:bg-white focus:ring-2 focus:ring-primary/10 disabled:opacity-60"
+                    placeholder="you@example.com"
                     disabled={loading}
                   />
                 </div>
               </div>
 
+              {/* Password */}
               <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-semibold text-foreground">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label htmlFor="password" className="text-sm font-bold text-gray-700">
                     Password
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-xs font-medium text-primary hover:text-primary-dark hover:underline cursor-pointer"
+                    className="text-xs font-semibold text-primary hover:underline"
                   >
                     Forgot password?
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground/40 transition-colors" />
+                  <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-xl border-2 border-accent-grey/20 bg-white py-3 pl-12 pr-12 text-foreground transition-all focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-10 pr-11 text-sm font-medium text-gray-900 placeholder-gray-400 outline-none transition-all focus:border-primary/50 focus:bg-white focus:ring-2 focus:ring-primary/10 disabled:opacity-60"
                     placeholder="Enter your password"
                     disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground/60 transition-colors cursor-pointer"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
                     tabIndex={-1}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading || !email || !password}
-                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-primary to-primary-dark px-6 py-4 font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl disabled:scale-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="group w-full rounded-2xl bg-primary px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
-                <span className="relative flex items-center justify-center space-x-2">
+                <span className="flex items-center justify-center gap-2">
                   {loading ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Signing in...</span>
-                    </>
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Signing in...</>
                   ) : (
-                    <>
-                      <LogIn className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                      <span>Sign In</span>
-                      <ArrowRight className="h-4 w-4 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
-                    </>
+                    <><LogIn className="h-4 w-4" /> Sign In <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>
                   )}
                 </span>
               </button>
             </form>
-
-            <div className="mt-8">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-accent-grey/20"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-foreground/40">New to Phone Master?</span>
-                </div>
-              </div>
-
-              <Link
-                href="/register"
-                className="mt-6 flex w-full items-center justify-center space-x-2 rounded-xl border-2 border-primary bg-white px-6 py-3 font-semibold text-primary transition-all hover:bg-accent-cyan-light hover:shadow-md cursor-pointer"
-              >
-                <span>Create an account</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
           </div>
 
-          {/* Trust Badges */}
-          <div className="mt-8 flex items-center justify-center space-x-6 text-xs text-foreground/40">
-            <div className="flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
-              <span>Secure</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Zap className="h-4 w-4" />
-              <span>Fast</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Smartphone className="h-4 w-4" />
-              <span>Reliable</span>
-            </div>
-          </div>
+          <p className="mt-6 text-center text-xs font-medium text-gray-400">
+            By signing in you agree to our{' '}
+            <Link href="/terms" className="text-gray-600 underline underline-offset-2 hover:text-primary">Terms</Link>
+            {' '}and{' '}
+            <Link href="/privacy" className="text-gray-600 underline underline-offset-2 hover:text-primary">Privacy Policy</Link>.
+          </p>
         </div>
       </div>
+
     </div>
   );
 }
-
-

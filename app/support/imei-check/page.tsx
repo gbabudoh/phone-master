@@ -1,109 +1,114 @@
-import { Metadata } from "next";
-import ImeiChecker from "@/components/marketplace/ImeiChecker";
-import { Shield, Info, AlertTriangle } from "lucide-react";
+import { Metadata } from 'next';
+import Link from 'next/link';
+import ImeiChecker from '@/components/marketplace/ImeiChecker';
+import { Shield, ArrowLeft, Smartphone, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: "IMEI / Blacklist Checker - Phone Master",
-  description:
-    "Verify that a mobile device is not reported as lost or stolen before purchase. Free IMEI blacklist checker.",
+  title: 'IMEI / Blacklist Checker - Phone Master',
+  description: 'Verify that a mobile device is not reported as lost or stolen before purchase. Free IMEI blacklist checker.',
 };
+
+const HOW_TO_STEPS = [
+  { step: '1', text: <>Dial <code className="rounded-md bg-white px-2 py-0.5 font-mono text-xs font-bold text-primary ring-1 ring-black/10">*#06#</code> on any phone — the IMEI appears instantly</> },
+  { step: '2', text: 'Go to Settings → About Phone → IMEI Information' },
+  { step: '3', text: 'Check the original box or the SIM tray label' },
+  { step: '4', text: 'iPhone users: Settings → General → About → IMEI' },
+];
+
+const WHY_CHECK = [
+  'Confirm the device is not reported lost or stolen',
+  'Ensure it is not carrier-blacklisted across UK networks',
+  'Detect counterfeit or tampered IMEI numbers',
+  'Protect yourself before completing any purchase',
+];
 
 export default function ImeiCheckPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-cyan-light">
-          <Shield className="h-8 w-8 text-primary cursor-pointer" />
-        </div>
-        <h1 className="text-4xl font-bold text-foreground">
-          IMEI / Blacklist Checker
-        </h1>
-        <p className="mt-4 text-lg text-foreground/60">
-          Verify that a device is not reported as lost or stolen before purchase
-        </p>
-      </div>
+    <div className="flex flex-col gap-10 pb-20">
 
-      {/* Main IMEI Checker */}
-      <div className="mb-8">
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-linear-to-br from-emerald-700 via-teal-700 to-emerald-900 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-teal-300/10 blur-3xl" />
+        <div className="relative mx-auto max-w-3xl text-center">
+          <Link
+            href="/support"
+            className="mb-6 inline-flex items-center gap-1.5 text-xs font-bold text-white/50 hover:text-white/80 transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Support Center
+          </Link>
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+            <Shield className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-black leading-tight text-white md:text-5xl">
+            IMEI <span className="text-teal-300">Blacklist Checker</span>
+          </h1>
+          <p className="mt-4 text-lg font-medium text-white/65">
+            Free instant verification — check any device before you buy. Covers all major UK networks.
+          </p>
+        </div>
+      </section>
+
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
+
+        {/* Main checker */}
         <ImeiChecker />
-      </div>
 
-      {/* Information Section */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* How to Find IMEI */}
-        <div className="rounded-lg border border-accent-grey/20 bg-white p-6">
-          <div className="mb-4 flex items-center space-x-2">
-            <Info className="h-5 w-5 text-primary cursor-pointer" />
-            <h2 className="text-xl font-semibold">How to Find Your IMEI</h2>
+        {/* Info grid */}
+        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+
+          {/* How to find IMEI */}
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Smartphone className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-base font-black text-gray-900">How to Find Your IMEI</h2>
+            </div>
+            <div className="flex flex-col gap-3.5">
+              {HOW_TO_STEPS.map(({ step, text }) => (
+                <div key={step} className="flex items-start gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">
+                    {step}
+                  </span>
+                  <p className="text-sm font-medium leading-relaxed text-gray-600">{text}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <ul className="space-y-2 text-sm text-foreground/80">
-            <li className="flex items-start">
-              <span className="mr-2 font-semibold">1.</span>
-              <span>
-                Dial{" "}
-                <code className="rounded bg-accent-cyan-light px-1">*#06#</code>{" "}
-                on your phone
-              </span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2 font-semibold">2.</span>
-              <span>Check Settings → About Phone → IMEI</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2 font-semibold">3.</span>
-              <span>Check the device box or SIM tray</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2 font-semibold">4.</span>
-              <span>For iPhone: Settings → General → About</span>
-            </li>
-          </ul>
+
+          {/* Why check */}
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
+              </div>
+              <h2 className="text-base font-black text-gray-900">Why Check IMEI?</h2>
+            </div>
+            <div className="flex flex-col gap-3">
+              {WHY_CHECK.map((text) => (
+                <div key={text} className="flex items-start gap-3">
+                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <p className="text-sm font-medium text-gray-600">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Why Check IMEI */}
-        <div className="rounded-lg border border-accent-grey/20 bg-white p-6">
-          <div className="mb-4 flex items-center space-x-2">
-            <AlertTriangle className="h-5 w-5 text-primary cursor-pointer" />
-            <h2 className="text-xl font-semibold">Why Check IMEI?</h2>
-          </div>
-          <ul className="space-y-2 text-sm text-foreground/80">
-            <li className="flex items-start">
-              <span className="mr-2">✓</span>
-              <span>Verify device is not reported stolen or lost</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2">✓</span>
-              <span>Ensure device is not blacklisted by networks</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2">✓</span>
-              <span>Protect yourself from purchasing blocked devices</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2">✓</span>
-              <span>Check device warranty and activation status</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Important Notice */}
-      <div className="mt-8 rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-        <div className="flex items-start space-x-3">
-          <AlertTriangle className="h-5 w-5 text-yellow-600 cursor-pointer" />
+        {/* Notice */}
+        <div className="mt-6 flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <div>
-            <h3 className="mb-2 font-semibold text-yellow-900">
-              Important Notice
-            </h3>
-            <p className="text-sm text-yellow-800">
-              This IMEI checker provides basic validation and blacklist status.
-              For comprehensive device information, including detailed network
-              status, warranty information, and carrier details, consider using
-              a professional IMEI checking service. Always verify device status
-              before completing a purchase.
+            <p className="text-sm font-black text-amber-900">Important Notice</p>
+            <p className="mt-1 text-sm font-medium text-amber-700">
+              This checker provides Luhn-algorithm validation and basic blacklist status. For a full
+              carrier report — including warranty, activation lock, and detailed network status —
+              use a professional IMEI service. Always inspect the device physically before completing a purchase.
             </p>
           </div>
         </div>
+
       </div>
     </div>
   );

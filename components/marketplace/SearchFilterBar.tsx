@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Filter, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 
 interface SearchFilterBarProps {
   onSearch: (query: string) => void;
   onFilterChange: (filters: FilterState) => void;
+  initialQuery?: string;
 }
 
 export interface FilterState {
@@ -19,148 +19,254 @@ export interface FilterState {
   brand?: string;
 }
 
-export default function SearchFilterBar({ onSearch, onFilterChange }: SearchFilterBarProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+const EMPTY_FILTERS: FilterState = {
+  category: 'all',
+  condition: 'all',
+  grade: 'all',
+  networkStatus: 'all',
+};
+
+type PillGroup<T extends string> = { label: string; value: T }[];
+
+const CATEGORIES: PillGroup<FilterState['category']> = [
+  { label: 'All', value: 'all' },
+  { label: 'Handsets', value: 'handset' },
+  { label: 'Accessories', value: 'accessory' },
+  { label: 'Services', value: 'service_voucher' },
+];
+
+const CONDITIONS: PillGroup<FilterState['condition']> = [
+  { label: 'All', value: 'all' },
+  { label: 'New', value: 'new' },
+  { label: 'Refurbished', value: 'refurbished' },
+  { label: 'Used', value: 'used' },
+];
+
+const GRADES: PillGroup<FilterState['grade']> = [
+  { label: 'All', value: 'all' },
+  { label: 'Grade A', value: 'A' },
+  { label: 'Grade B', value: 'B' },
+  { label: 'Grade C', value: 'C' },
+];
+
+const NETWORKS: PillGroup<FilterState['networkStatus']> = [
+  { label: 'All', value: 'all' },
+  { label: 'Unlocked', value: 'unlocked' },
+  { label: 'Locked', value: 'locked' },
+];
+
+function PillSelector<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: PillGroup<T>;
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+            value === opt.value
+              ? 'bg-primary text-white shadow-sm shadow-primary/20'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function activeFilterCount(f: FilterState): number {
+  return (
+    (f.category !== 'all' ? 1 : 0) +
+    (f.condition !== 'all' ? 1 : 0) +
+    (f.grade !== 'all' ? 1 : 0) +
+    (f.networkStatus !== 'all' ? 1 : 0)
+  );
+}
+
+function activeChips(f: FilterState): { key: keyof FilterState; label: string }[] {
+  const chips: { key: keyof FilterState; label: string }[] = [];
+  const catMap: Record<string, string> = { handset: 'Handsets', accessory: 'Accessories', service_voucher: 'Services' };
+  const condMap: Record<string, string> = { new: 'New', refurbished: 'Refurbished', used: 'Used' };
+  const gradeMap: Record<string, string> = { A: 'Grade A', B: 'Grade B', C: 'Grade C' };
+  const netMap: Record<string, string> = { unlocked: 'Unlocked', locked: 'Locked' };
+  if (f.category !== 'all') chips.push({ key: 'category', label: catMap[f.category] });
+  if (f.condition !== 'all') chips.push({ key: 'condition', label: condMap[f.condition] });
+  if (f.grade !== 'all') chips.push({ key: 'grade', label: gradeMap[f.grade] });
+  if (f.networkStatus !== 'all') chips.push({ key: 'networkStatus', label: netMap[f.networkStatus] });
+  return chips;
+}
+
+const showConditionFilters = (cat: FilterState['category']) =>
+  cat === 'all' || cat === 'handset';
+
+export default function SearchFilterBar({
+  onSearch,
+  onFilterChange,
+  initialQuery = '',
+}: SearchFilterBarProps) {
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FilterState>({
-    category: 'all',
-    condition: 'all',
-    grade: 'all',
-    networkStatus: 'all',
-  });
+  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(searchQuery);
   };
 
-  const updateFilter = (key: keyof FilterState, value: any) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+  const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+    const next = { ...filters, [key]: value };
+    setFilters(next);
+    onFilterChange(next);
   };
 
-  const clearFilters = () => {
-    const clearedFilters: FilterState = {
-      category: 'all',
-      condition: 'all',
-      grade: 'all',
-      networkStatus: 'all',
-    };
-    setFilters(clearedFilters);
-    onFilterChange(clearedFilters);
+  const removeChip = (key: keyof FilterState) => {
+    updateFilter(key, EMPTY_FILTERS[key as keyof typeof EMPTY_FILTERS] as FilterState[typeof key]);
   };
+
+  const clearAll = () => {
+    setFilters(EMPTY_FILTERS);
+    onFilterChange(EMPTY_FILTERS);
+  };
+
+  const count = activeFilterCount(filters);
+  const chips = activeChips(filters);
+  const showConditions = showConditionFilters(filters.category);
 
   return (
-    <div className="w-full">
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground/40" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search for phones, accessories, or services..."
-            className="w-full rounded-lg border border-accent-grey/20 bg-white py-3 pl-10 pr-4 text-sm focus:border-primary focus:outline-none"
-          />
+    <div className="mb-6 flex flex-col gap-3">
+
+      {/* Search input */}
+      <form onSubmit={handleSearch}>
+        <div className="flex items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+          <div className="flex flex-1 items-center gap-3 px-5 py-3.5">
+            <Search className="h-5 w-5 shrink-0 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search phones, brands, models..."
+              className="w-full bg-transparent text-sm font-medium text-gray-900 placeholder-gray-400 outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(''); onSearch(''); }}
+                className="shrink-0 text-gray-300 hover:text-gray-500 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
           <button
             type="submit"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
+            className="m-1.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-primary-dark active:scale-95"
           >
             Search
           </button>
         </div>
       </form>
 
-      {/* Filter Toggle */}
-      <button
-        onClick={() => setShowFilters(!showFilters)}
-        className="mb-4 flex items-center space-x-2 rounded-lg border border-accent-grey/20 bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent-cyan-light cursor-pointer"
-      >
-        <Filter className="h-4 w-4" />
-        <span>Filter Products</span>
-      </button>
+      {/* Filter toggle */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${
+            showFilters || count > 0
+              ? 'border-primary/30 bg-primary/5 text-primary'
+              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters
+          {count > 0 && (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-black text-white">
+              {count}
+            </span>
+          )}
+        </button>
 
-      {/* Filter Panel */}
+        {/* Active filter chips */}
+        {chips.map((chip) => (
+          <button
+            key={chip.key}
+            onClick={() => removeChip(chip.key)}
+            className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary/10"
+          >
+            {chip.label}
+            <X className="h-3 w-3" />
+          </button>
+        ))}
+
+        {count > 1 && (
+          <button
+            onClick={clearAll}
+            className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
+      {/* Filter panel */}
       {showFilters && (
-        <div className="mb-4 rounded-lg border border-accent-grey/20 bg-white p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Filter Products</h3>
-            <button
-              onClick={clearFilters}
-              className="flex items-center space-x-1 text-xs text-foreground/60 hover:text-primary"
-            >
-              <X className="h-3 w-3" />
-              <span>Clear all</span>
-            </button>
-          </div>
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Category */}
             <div>
-              <label className="mb-1 block text-xs font-medium text-foreground/80">Category</label>
-              <select
+              <p className="mb-2.5 text-xs font-black uppercase tracking-widest text-gray-400">Category</p>
+              <PillSelector
+                options={CATEGORIES}
                 value={filters.category}
-                onChange={(e) => updateFilter('category', e.target.value)}
-                className="w-full rounded-lg border border-accent-grey/20 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
-              >
-                <option value="all">All Categories</option>
-                <option value="handset">Handsets</option>
-                <option value="accessory">Accessories</option>
-                <option value="service_voucher">Services</option>
-              </select>
+                onChange={(v) => updateFilter('category', v)}
+              />
             </div>
 
-            {/* Condition */}
-            {filters.category === 'handset' || filters.category === 'all' ? (
-              <>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground/80">Condition</label>
-                  <select
-                    value={filters.condition}
-                    onChange={(e) => updateFilter('condition', e.target.value)}
-                    className="w-full rounded-lg border border-accent-grey/20 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                  >
-                    <option value="all">All Conditions</option>
-                    <option value="new">New</option>
-                    <option value="refurbished">Refurbished</option>
-                    <option value="used">Used</option>
-                  </select>
-                </div>
+            {showConditions && (
+              <div>
+                <p className="mb-2.5 text-xs font-black uppercase tracking-widest text-gray-400">Condition</p>
+                <PillSelector
+                  options={CONDITIONS}
+                  value={filters.condition}
+                  onChange={(v) => updateFilter('condition', v)}
+                />
+              </div>
+            )}
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground/80">Grade</label>
-                  <select
-                    value={filters.grade}
-                    onChange={(e) => updateFilter('grade', e.target.value)}
-                    className="w-full rounded-lg border border-accent-grey/20 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                  >
-                    <option value="all">All Grades</option>
-                    <option value="A">Grade A</option>
-                    <option value="B">Grade B</option>
-                    <option value="C">Grade C</option>
-                  </select>
-                </div>
+            {showConditions && (
+              <div>
+                <p className="mb-2.5 text-xs font-black uppercase tracking-widest text-gray-400">Grade</p>
+                <PillSelector
+                  options={GRADES}
+                  value={filters.grade}
+                  onChange={(v) => updateFilter('grade', v)}
+                />
+              </div>
+            )}
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground/80">Network</label>
-                  <select
-                    value={filters.networkStatus}
-                    onChange={(e) => updateFilter('networkStatus', e.target.value)}
-                    className="w-full rounded-lg border border-accent-grey/20 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                  >
-                    <option value="all">All</option>
-                    <option value="unlocked">Unlocked</option>
-                    <option value="locked">Locked</option>
-                  </select>
-                </div>
-              </>
-            ) : null}
+            {showConditions && (
+              <div>
+                <p className="mb-2.5 text-xs font-black uppercase tracking-widest text-gray-400">Network</p>
+                <PillSelector
+                  options={NETWORKS}
+                  value={filters.networkStatus}
+                  onChange={(v) => updateFilter('networkStatus', v)}
+                />
+              </div>
+            )}
+
           </div>
         </div>
       )}
     </div>
   );
 }
-

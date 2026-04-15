@@ -1,56 +1,68 @@
 'use client';
 
-import { useState } from 'react';
-import { MessageCircle, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useRef, useEffect } from 'react';
+import { MessageCircle, X, Send, Zap } from 'lucide-react';
+
+type Message = { sender: 'user' | 'chatbot'; content: string };
+
+const SUGGESTED = [
+  'Is this phone unlocked?',
+  'How does escrow work?',
+  'How do I check an IMEI?',
+];
 
 export default function ChatbotButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Array<{ sender: 'user' | 'chatbot'; content: string }>>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+  // Auto-scroll messages container only (not the page)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, loading]);
 
-    const userMessage = input.trim();
+  const open = () => {
+    setIsOpen(true);
+  };
+
+  const sendMessage = async (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || loading) return;
+
     setInput('');
-    setMessages((prev) => [...prev, { sender: 'user', content: userMessage }]);
+    const next: Message[] = [...messages, { sender: 'user', content }];
+    setMessages(next);
     setLoading(true);
 
     try {
       const response = await fetch('/api/support/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMessage,
-          conversationHistory: messages,
-        }),
+        body: JSON.stringify({ message: content, conversationHistory: messages }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Chatbot API error:', {
-          status: response.status,
-          error: errorData,
-        });
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
       setMessages((prev) => [
         ...prev,
-        { sender: 'chatbot', content: data.response || data.error || 'Sorry, I encountered an error.' },
+        { sender: 'chatbot', content: data.response || 'Sorry, I encountered an error.' },
       ]);
     } catch (error: unknown) {
-      console.error('Chatbot error:', error);
+      const msg = error instanceof Error ? error.message : '';
       setMessages((prev) => [
         ...prev,
-        { 
-          sender: 'chatbot', 
-          content: (error instanceof Error && error.message.includes('Failed to fetch'))
-            ? 'Network error. Please check your connection and try again.'
-            : 'Sorry, I encountered an error. Please check the server console for details.' 
+        {
+          sender: 'chatbot',
+          content: msg.includes('Failed to fetch')
+            ? 'Network error. Please check your connection.'
+            : 'Sorry, something went wrong. Please try again.',
         },
       ]);
     } finally {
@@ -60,101 +72,149 @@ export default function ChatbotButton() {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* ── Floating trigger ── */}
       {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all hover:scale-110 hover:bg-primary-dark cursor-pointer"
-          aria-label="Open Phone Genius chatbot"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </button>
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+          <button
+            onClick={open}
+            className="group relative flex cursor-pointer items-center gap-2.5 rounded-full bg-primary pl-4 pr-5 py-3 text-white shadow-xl shadow-primary/30 transition-all hover:bg-primary-dark hover:shadow-2xl hover:scale-105 active:scale-95"
+            aria-label="Open Phone Genius chatbot"
+          >
+            <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20">
+              <MessageCircle className="h-4 w-4 text-white" />
+              {/* Online dot */}
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-primary bg-emerald-400" />
+            </div>
+            <div className="text-left">
+              <p className="text-xs font-black leading-tight">Ask Phone Genius</p>
+              <p className="text-[10px] font-medium text-white/70 leading-tight">AI device assistant</p>
+            </div>
+          </button>
+        </div>
       )}
 
-      {/* Chat Window */}
+      {/* ── Chat window ── */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[500px] w-[400px] flex-col rounded-lg border border-accent-grey/20 bg-white shadow-2xl">
+        <div className="fixed bottom-6 right-6 z-50 flex w-[360px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10"
+          style={{ height: 'min(520px, calc(100dvh - 5rem))' }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-accent-grey/20 bg-primary px-4 py-3">
-            <div className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary">
-                <span className="text-sm font-bold">PG</span>
+          <div className="flex shrink-0 items-center justify-between bg-primary px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
+                <MessageCircle className="h-4.5 w-4.5 text-white" />
+                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-primary bg-emerald-400" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Phone Genius</h3>
-                <p className="text-xs text-white/80">Your mobile device assistant</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-black text-white">Phone Genius</p>
+                  <span className="rounded-full bg-emerald-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-300">
+                    Online
+                  </span>
+                </div>
+                <p className="text-[11px] font-medium text-white/60">AI-powered device assistant</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white cursor-pointer"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
               aria-label="Close chatbot"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto bg-gray-50 px-4 py-4"
+          >
             {messages.length === 0 ? (
-              <div className="text-center text-sm text-foreground/60">
-                <p className="mb-2 font-semibold">👋 Hello! I&apos;m Phone Genius</p>
-                <p>Ask me anything about mobile devices, troubleshooting, or compatibility!</p>
+              <div className="flex flex-col items-center gap-5 pt-3 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+                  <Zap className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-gray-900">Hi! I&apos;m Phone Genius</p>
+                  <p className="mt-1 text-xs font-medium text-gray-500">
+                    Ask me anything about mobile devices, IMEI checks, or how this marketplace works.
+                  </p>
+                </div>
+                <div className="w-full space-y-2">
+                  {SUGGESTED.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => sendMessage(q)}
+                      className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-left text-xs font-semibold text-gray-700 shadow-sm transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                    >
+                      {q}
+                      <Send className="ml-2 h-3 w-3 shrink-0 text-gray-300" />
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
-              messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    'flex',
-                    msg.sender === 'user' ? 'justify-end' : 'justify-start'
-                  )}
-                >
+              <div className="flex flex-col gap-3">
+                {messages.map((msg, idx) => (
                   <div
-                    className={cn(
-                      'max-w-[80%] rounded-lg px-4 py-2 text-sm',
-                      msg.sender === 'user'
-                        ? 'bg-primary text-white'
-                        : 'bg-accent-cyan-light text-foreground'
-                    )}
+                    key={idx}
+                    className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {msg.content}
+                    {msg.sender === 'chatbot' && (
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 mb-0.5">
+                        <MessageCircle className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-xs font-medium leading-relaxed ${
+                        msg.sender === 'user'
+                          ? 'rounded-br-sm bg-primary text-white shadow-sm shadow-primary/20'
+                          : 'rounded-bl-sm bg-white text-gray-800 shadow-sm ring-1 ring-black/5'
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="rounded-lg bg-accent-cyan-light px-4 py-2 text-sm text-foreground">
-                  Thinking...
-                </div>
+                ))}
+
+                {loading && (
+                  <div className="flex items-end gap-2">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <MessageCircle className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div className="rounded-2xl rounded-bl-sm bg-white px-3.5 py-3 shadow-sm ring-1 ring-black/5">
+                      <div className="flex items-center gap-1">
+                        <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]" />
+                        <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]" />
+                        <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Input */}
-          <div className="border-t border-accent-grey/20 p-4">
+          <div className="shrink-0 border-t border-gray-100 bg-white px-3 py-3">
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendMessage();
-              }}
-              className="flex space-x-2"
+              onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+              className="flex items-center gap-2"
             >
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask a question..."
-                className="flex-1 rounded-lg border border-accent-grey/20 px-4 py-2 text-sm focus:border-primary focus:outline-none"
+                placeholder="Ask about any device..."
+                className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs font-medium text-gray-900 placeholder-gray-400 outline-none transition-all focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/10 disabled:opacity-60"
                 disabled={loading}
               />
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark disabled:opacity-50 cursor-pointer"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-all hover:bg-primary-dark active:scale-95 disabled:opacity-40"
               >
-                Send
+                <Send className="h-3.5 w-3.5" />
               </button>
             </form>
           </div>
@@ -163,4 +223,3 @@ export default function ChatbotButton() {
     </>
   );
 }
-

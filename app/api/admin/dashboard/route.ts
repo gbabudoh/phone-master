@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await requireAuth();
     if (session.role !== 'admin') {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const pendingSellers = await prisma.user.findMany({
       where: {
         role: { in: ['personal_seller', 'retail_seller', 'wholesale_seller'] },
-        status: 'pending',
+        status: 'pending_verification',
       },
     });
 

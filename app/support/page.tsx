@@ -1,117 +1,160 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { MessageCircle, Shield, HelpCircle, BookOpen } from 'lucide-react';
+import { MessageCircle, Shield, HelpCircle, BookOpen, ArrowRight, Zap, Clock, CheckCircle } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Support - Phone Master',
   description: 'Get help with mobile devices, troubleshooting, compatibility checks, and more.',
 };
 
+const quickQuestions = [
+  'How do I check if a phone is stolen?',
+  'What does IMEI blacklisted mean?',
+  'Is this device compatible with my network?',
+  'How does escrow work?',
+];
+
 export default function SupportPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-12 text-center">
-        <h1 className="text-4xl font-bold text-foreground">Support Center</h1>
-        <p className="mt-4 text-lg text-foreground/60">
-          Get instant help with Phone Genius AI or explore our resources
-        </p>
-      </div>
+    <div className="flex flex-col gap-16 pb-20">
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Phone Genius Chatbot */}
-        <div className="rounded-lg border border-accent-grey/20 bg-white p-8">
-          <div className="mb-4 flex items-center space-x-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-cyan-light">
-              <MessageCircle className="h-6 w-6 text-primary" />
-            </div>
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-linear-to-br from-primary via-[#013a63] to-[#01294a] py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="relative mx-auto max-w-3xl text-center">
+          <span className="mb-5 inline-block rounded-full bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white/80 backdrop-blur-sm">
+            Support Center
+          </span>
+          <h1 className="text-4xl font-black leading-tight text-white md:text-5xl">
+            How can we <span className="text-cyan-300">help you?</span>
+          </h1>
+          <p className="mt-4 text-lg font-medium text-white/65">
+            AI-powered answers, IMEI verification, guides, and a human team — all in one place.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm font-semibold text-white/60">
+            <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-emerald-400" /> Instant AI answers</span>
+            <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-emerald-400" /> Free IMEI checks</span>
+            <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-emerald-400" /> 24/7 available</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 -mt-10 flex flex-col gap-8">
+
+        {/* Phone Genius — Featured hero card */}
+        <div className="relative overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
+          <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-cyan-50/50 pointer-events-none" />
+          <div className="relative grid grid-cols-1 gap-8 p-8 md:grid-cols-2 md:items-center md:p-12">
             <div>
-              <h2 className="text-2xl font-semibold">Phone Genius</h2>
-              <p className="text-sm text-foreground/60">AI-powered mobile device assistant</p>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                  <MessageCircle className="h-7 w-7 text-primary" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-black text-gray-900">Phone Genius</h2>
+                    <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      AI Online
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">AI-powered mobile device assistant</p>
+                </div>
+              </div>
+              <p className="text-gray-600 leading-relaxed font-medium mb-6">
+                Get instant, expert-level answers about any mobile device — troubleshooting, compatibility, network checks, repairs, and buying advice. Powered by Gemini AI.
+              </p>
+              <div className="mb-6 flex flex-wrap gap-3 text-xs font-semibold text-gray-500">
+                <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5"><Zap className="h-3.5 w-3.5 text-yellow-500" /> Instant answers</span>
+                <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5"><Clock className="h-3.5 w-3.5 text-blue-500" /> Available 24/7</span>
+              </div>
+              <Link
+                href="/support/chatbot"
+                className="inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark hover:shadow-xl active:scale-95"
+              >
+                <span>Chat with Phone Genius</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            {/* Quick question chips */}
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Try asking:</p>
+              {quickQuestions.map((q) => (
+                <Link
+                  key={q}
+                  href={`/support/chatbot?q=${encodeURIComponent(q)}`}
+                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3.5 text-sm font-semibold text-gray-700 transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary group"
+                >
+                  <span>{q}</span>
+                  <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary transition-colors" />
+                </Link>
+              ))}
             </div>
           </div>
-          <p className="mb-6 text-foreground/80">
-            Get instant answers to your questions about mobile devices, troubleshooting, compatibility, and more.
-            Click the chat button in the bottom right corner to start a conversation!
-          </p>
-          <Link
-            href="/support/chatbot"
-            className="inline-flex items-center space-x-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
-          >
-            <span>Open Chatbot</span>
-            <MessageCircle className="h-4 w-4" />
-          </Link>
         </div>
 
-        {/* IMEI Checker */}
-        <div className="rounded-lg border border-accent-grey/20 bg-white p-8">
-          <div className="mb-4 flex items-center space-x-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-cyan-light">
-              <Shield className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold">IMEI / Blacklist Checker</h2>
-              <p className="text-sm text-foreground/60">Verify device status</p>
-            </div>
-          </div>
-          <p className="mb-6 text-foreground/80">
-            Check if a device is reported as lost or stolen before making a purchase. Verify IMEI status instantly.
-          </p>
+        {/* Secondary tools — 3-column grid */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+
+          {/* IMEI Checker */}
           <Link
             href="/support/imei-check"
-            className="inline-flex items-center space-x-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
+            className="group relative overflow-hidden rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-xl"
           >
-            <span>Check IMEI</span>
-            <Shield className="h-4 w-4" />
+            <div className="absolute inset-0 bg-linear-to-br from-emerald-500/0 to-teal-500/0 opacity-0 transition-opacity group-hover:opacity-5 pointer-events-none" />
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
+              <Shield className="h-7 w-7 text-emerald-600" />
+            </div>
+            <h2 className="mb-2 text-xl font-black text-gray-900">IMEI Checker</h2>
+            <p className="text-sm font-medium text-gray-500 mb-2">Verify device status</p>
+            <p className="text-sm text-gray-600 leading-relaxed mb-6">
+              Instantly check if a device is blacklisted, stolen, or carrier-locked before you buy.
+            </p>
+            <span className="inline-flex items-center gap-2 text-sm font-black text-emerald-600 group-hover:gap-3 transition-all">
+              Check IMEI <ArrowRight className="h-4 w-4" />
+            </span>
           </Link>
-        </div>
 
-        {/* Knowledge Base */}
-        <div className="rounded-lg border border-accent-grey/20 bg-white p-8">
-          <div className="mb-4 flex items-center space-x-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-cyan-light">
-              <BookOpen className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold">Knowledge Base</h2>
-              <p className="text-sm text-foreground/60">Guides and tutorials</p>
-            </div>
-          </div>
-          <p className="mb-6 text-foreground/80">
-            Browse our comprehensive guides on mobile device troubleshooting, compatibility, and best practices.
-          </p>
+          {/* Knowledge Base */}
           <Link
             href="/support/knowledge-base"
-            className="inline-flex items-center space-x-2 rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-accent-cyan-light"
+            className="group relative overflow-hidden rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-xl"
           >
-            <span>Browse Guides</span>
-            <BookOpen className="h-4 w-4" />
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50">
+              <BookOpen className="h-7 w-7 text-purple-600" />
+            </div>
+            <h2 className="mb-2 text-xl font-black text-gray-900">Knowledge Base</h2>
+            <p className="text-sm font-medium text-gray-500 mb-2">Guides & tutorials</p>
+            <p className="text-sm text-gray-600 leading-relaxed mb-6">
+              Step-by-step guides on device troubleshooting, compatibility, buying tips, and escrow.
+            </p>
+            <span className="inline-flex items-center gap-2 text-sm font-black text-purple-600 group-hover:gap-3 transition-all">
+              Browse Guides <ArrowRight className="h-4 w-4" />
+            </span>
           </Link>
-        </div>
 
-        {/* Contact Support */}
-        <div className="rounded-lg border border-accent-grey/20 bg-white p-8">
-          <div className="mb-4 flex items-center space-x-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-cyan-light">
-              <HelpCircle className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold">Contact Support</h2>
-              <p className="text-sm text-foreground/60">Get human assistance</p>
-            </div>
-          </div>
-          <p className="mb-6 text-foreground/80">
-            Need additional help? Our support team is here to assist you with any questions or issues.
-          </p>
+          {/* Contact Support */}
           <Link
             href="/contact"
-            className="inline-flex items-center space-x-2 rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-accent-cyan-light"
+            className="group relative overflow-hidden rounded-2xl bg-white p-8 shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-xl"
           >
-            <span>Contact Us</span>
-            <HelpCircle className="h-4 w-4" />
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50">
+              <HelpCircle className="h-7 w-7 text-orange-600" />
+            </div>
+            <h2 className="mb-2 text-xl font-black text-gray-900">Human Support</h2>
+            <p className="text-sm font-medium text-gray-500 mb-2">Talk to a real person</p>
+            <p className="text-sm text-gray-600 leading-relaxed mb-6">
+              Need more help? Our team is ready to assist you with disputes, account issues, and more.
+            </p>
+            <span className="inline-flex items-center gap-2 text-sm font-black text-orange-600 group-hover:gap-3 transition-all">
+              Contact Us <ArrowRight className="h-4 w-4" />
+            </span>
           </Link>
+
         </div>
       </div>
     </div>
   );
 }
-

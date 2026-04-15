@@ -1,13 +1,83 @@
 import { IChatMessage, ChatTopic } from '@/types/chatbot';
-import { imei as validateLuhnImei } from 'luhn-validation';
+import { detectTopic } from './ai-utils';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // Using Gemini Pro (most universally available model)
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-pro';
+// Using a more resilient model as default
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**
- * Send a message to the Phone Genius chatbot
+ * Get a fallback response when AI is not available
+ */
+function getFallbackResponse(message: string): { response: string; topic?: ChatTopic } {
+  const lowerMessage = message.toLowerCase();
+  
+  // Greetings
+  if (lowerMessage.match(/^(hi|hello|hey|good morning|good afternoon|good evening)/)) {
+    return {
+      response: "Hello! I'm Phone Genius, your mobile device assistant. I can help you with:\n\n• **Troubleshooting** - Fix common phone issues\n• **Compatibility** - Check if accessories work with your device\n• **Device Info** - Learn about phone specifications\n• **Value Estimates** - Get an idea of your phone's worth\n\nHow can I help you today?",
+      topic: 'general',
+    };
+  }
+  
+  // Troubleshooting
+  if (lowerMessage.match(/(not working|broken|problem|issue|fix|help|error|crash|slow|freeze)/)) {
+    return {
+      response: "I'd be happy to help troubleshoot your device! Here are some common solutions:\n\n1. **Restart your device** - This fixes many issues\n2. **Check for updates** - Go to Settings > Software Update\n3. **Clear cache** - Settings > Apps > Select app > Clear Cache\n4. **Free up storage** - Delete unused apps and files\n\nCan you tell me more about the specific issue you're experiencing?",
+      topic: 'troubleshooting',
+    };
+  }
+  
+  // Battery issues
+  if (lowerMessage.match(/(battery|charging|drain|power)/)) {
+    return {
+      response: "Battery issues are common. Here are some tips:\n\n• **Check battery health** - Settings > Battery > Battery Health\n• **Reduce screen brightness** - Lower brightness saves battery\n• **Close background apps** - Apps running in background drain battery\n• **Enable battery saver** - Settings > Battery > Battery Saver\n• **Check for rogue apps** - Some apps drain battery excessively\n\nIf your battery drains very quickly, it might need replacement.",
+      topic: 'troubleshooting',
+    };
+  }
+  
+  // Screen issues
+  if (lowerMessage.match(/(screen|display|touch|crack|broken screen)/)) {
+    return {
+      response: "For screen issues:\n\n• **Unresponsive touch** - Try restarting your device\n• **Screen flickering** - Check display settings, reduce brightness\n• **Cracked screen** - Visit a repair shop for replacement\n• **Dead pixels** - Usually requires screen replacement\n\nFor physical damage, I recommend visiting an authorized repair center.",
+      topic: 'repair',
+    };
+  }
+  
+  // Compatibility
+  if (lowerMessage.match(/(compatible|work with|fit|case|charger|accessory)/)) {
+    return {
+      response: "For compatibility questions:\n\n• **Cases** - Check your exact phone model (e.g., iPhone 14 Pro vs iPhone 14)\n• **Chargers** - Most modern phones use USB-C, older iPhones use Lightning\n• **Screen protectors** - Must match your exact model and screen size\n• **Wireless chargers** - Most Qi-certified chargers work with compatible phones\n\nWhat specific accessory are you looking to check?",
+      topic: 'compatibility',
+    };
+  }
+  
+  // Value/Price
+  if (lowerMessage.match(/(worth|value|price|sell|trade|how much)/)) {
+    return {
+      response: "To estimate your phone's value, I'd need to know:\n\n1. **Model** - e.g., iPhone 14 Pro, Samsung Galaxy S23\n2. **Storage** - e.g., 128GB, 256GB\n3. **Condition** - Any scratches, cracks, or issues?\n4. **Accessories** - Original box, charger included?\n\nYou can also check our marketplace for similar listings to get an idea of current prices!",
+      topic: 'value_estimate',
+    };
+  }
+  
+  // IMEI
+  if (lowerMessage.match(/(imei|blacklist|stolen|lost|check)/)) {
+    return {
+      response: "To check an IMEI:\n\n1. **Find your IMEI** - Dial *#06# on your phone\n2. **Use our IMEI Checker** - Visit /support/imei-check\n3. **What we check** - Blacklist status, device authenticity\n\nAlways check the IMEI before buying a used phone to ensure it's not reported stolen!",
+      topic: 'general',
+    };
+  }
+  
+  // Default response
+  return {
+    response: "I'm Phone Genius, your mobile device assistant! I can help with:\n\n• **Troubleshooting** - Fix common phone issues\n• **Compatibility** - Check if accessories work with your device\n• **Device Info** - Learn about phone specifications\n• **Value Estimates** - Get an idea of your phone's worth\n• **IMEI Check** - Verify device authenticity\n\nWhat would you like help with?",
+    topic: 'general',
+  };
+}
+
+/**
+ * Send a message to the Phone Genius chatbot using Google Gemini
  */
 export async function sendChatbotMessage(
   message: string,
@@ -15,40 +85,36 @@ export async function sendChatbotMessage(
 ): Promise<{ response: string; topic?: ChatTopic }> {
   // Check if API key is configured
   if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
-    console.warn('GEMINI_API_KEY is not configured');
-    // Fallback response if API key is not configured
-    return {
-      response: "I'm Phone Genius, your mobile device assistant! I can help with troubleshooting, compatibility checks, and device information. Please configure the GEMINI_API_KEY environment variable to enable full AI capabilities.",
-      topic: 'general',
-    };
+    console.warn('GEMINI_API_KEY is not configured - using fallback responses');
+    return getFallbackResponse(message);
   }
 
   try {
-    // Build context from conversation history
+    console.log('Gemini Chatbot Request:', {
+      model: GEMINI_MODEL,
+      keyPrefix: GEMINI_API_KEY?.substring(0, 10),
+      url: GEMINI_API_URL,
+    });
+
+    // Build context from conversation history (optimized for token usage)
     const context = conversationHistory
-      .slice(-10) // Last 10 messages for context
+      .slice(-6) // Reduced context window for speed and efficiency
       .map((msg) => `${msg.sender === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
       .join('\n');
 
-    const prompt = `You are Phone Genius, a helpful AI assistant for Phone Master, a mobile phone marketplace and support platform. 
+    const prompt = `You are Phone Genius, a helpful AI assistant for Phone Master. 
     
 Your role is to help users with:
 - Troubleshooting mobile device issues
-- Checking compatibility between devices and accessories
+- Checking compatibility
 - Providing information about mobile phones
 - Estimating device values
-- Directing users to appropriate support resources
+
+Be concise, helpful, and professional.
 
 ${context ? `Previous conversation:\n${context}\n\n` : ''}
 User: ${message}
 Assistant:`;
-
-    console.log('Calling Gemini API:', {
-      url: GEMINI_API_URL,
-      model: GEMINI_MODEL,
-      hasKey: !!GEMINI_API_KEY,
-      keyLength: GEMINI_API_KEY?.length || 0,
-    });
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -63,48 +129,31 @@ Assistant:`;
         }],
         generationConfig: {
           temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
           maxOutputTokens: 1024,
         },
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { raw: errorText };
-      }
+      const errorData = await response.json().catch(() => ({}));
+      const statusCode = response.status;
       
       console.error('Gemini API error:', {
-        status: response.status,
-        statusText: response.statusText,
+        status: statusCode,
         error: errorData,
-        url: GEMINI_API_URL,
       });
       
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
+      throw new Error(`Gemini API Error ${statusCode}: ${errorData.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
-    
-    // Handle different response formats
-    let aiResponse = '';
-    if (data.candidates && data.candidates.length > 0) {
-      aiResponse = data.candidates[0]?.content?.parts?.[0]?.text || '';
-    } else if (data.text) {
-      aiResponse = data.text;
-    }
+    let aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     if (!aiResponse) {
       console.error('Unexpected Gemini API response format:', data);
       aiResponse = "I apologize, but I'm having trouble processing your request right now. Please try again later.";
     }
 
-    // Simple topic detection (can be enhanced)
     const topic = detectTopic(message, aiResponse);
 
     return {
@@ -114,16 +163,17 @@ Assistant:`;
   } catch (error: unknown) {
     console.error('Error calling Gemini API:', error);
     
-    // Provide more specific error messages
-    let errorMessage = "I'm experiencing technical difficulties. Please try again in a moment, or contact our support team for immediate assistance.";
+    let errorMessage = "I'm experiencing technical difficulties. Please try again in a moment.";
+    const errMessage = error instanceof Error ? error.message : '';
     
-    const message = error instanceof Error ? error.message : '';
-    if (message.includes('API key')) {
-      errorMessage = "The AI service is not properly configured. Please contact support.";
-    } else if (message.includes('429')) {
-      errorMessage = "The AI service is currently busy. Please try again in a moment.";
-    } else if (message.includes('403')) {
-      errorMessage = "Access denied. Please check the API configuration.";
+    if (errMessage.includes('404')) {
+      errorMessage = `The selected model (${GEMINI_MODEL}) was not found. Please check your configuration.`;
+    } else if (errMessage.includes('429')) {
+      errorMessage = "The AI service is currently at capacity or quota limit reached. Please try again soon.";
+    } else if (errMessage.includes('403')) {
+      errorMessage = "Access denied. Please check your Gemini API key permissions.";
+    } else if (errMessage.includes('500') || errMessage.includes('503')) {
+      errorMessage = "The Google AI service is currently unavailable. Please try again later.";
     }
     
     return {
@@ -133,26 +183,6 @@ Assistant:`;
   }
 }
 
-/**
- * Detect the topic of the conversation
- */
-function detectTopic(userMessage: string, aiResponse: string): ChatTopic {
-  const message = (userMessage + ' ' + aiResponse).toLowerCase();
-
-  if (message.match(/(troubleshoot|fix|problem|issue|error|not working|broken)/)) {
-    return 'troubleshooting';
-  }
-  if (message.match(/(compatible|fit|works with|compatibility)/)) {
-    return 'compatibility';
-  }
-  if (message.match(/(value|worth|price|cost|estimate)/)) {
-    return 'value_estimate';
-  }
-  if (message.match(/(repair|fix|broken|damaged|screen|battery)/)) {
-    return 'repair';
-  }
-  return 'general';
-}
 
 /**
  * Check IMEI against blacklist and validate authenticity

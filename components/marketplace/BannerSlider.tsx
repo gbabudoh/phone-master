@@ -6,12 +6,10 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation, EffectFade, Keyboard } from 'swiper/modules';
 import Image from 'next/image';
 import Link from 'next/link';
+
 import { IBanner } from '@/types/banner';
 import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
-import 'swiper/css';
-import 'swiper/css/pagination';
-import 'swiper/css/navigation';
-import 'swiper/css/effect-fade';
+import 'swiper/swiper-bundle.css';
 
 export default function BannerSlider() {
   const [banners, setBanners] = useState<IBanner[]>([]);
@@ -79,10 +77,39 @@ export default function BannerSlider() {
 
   if (banners.length === 0) {
     return (
-      <div className="h-[300px] w-full bg-gradient-to-br from-primary/10 to-accent-cyan-light/30 flex items-center justify-center md:h-[400px] lg:h-[500px]">
-        <div className="text-center">
-          <p className="text-lg font-semibold text-foreground/60">No banners available</p>
-          <p className="text-sm text-foreground/40 mt-2">Add banners from the admin panel</p>
+      <div className="relative h-[300px] w-full md:h-[420px] lg:h-[520px] overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-linear-to-br from-[#014f86] via-[#013a63] to-[#01294a]" />
+        {/* Decorative blobs */}
+        <div className="absolute -top-24 -right-24 h-[420px] w-[420px] rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-[420px] w-[420px] rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[600px] rounded-full bg-blue-400/5 blur-[80px]" />
+
+        <div className="relative z-10 flex h-full flex-col items-center justify-center gap-5 px-4 text-center">
+          <span className="inline-block rounded-full bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white/80 backdrop-blur-sm">
+            Nigeria&apos;s Smartest Phone Marketplace
+          </span>
+          <h1 className="text-3xl font-black leading-tight text-white md:text-5xl lg:text-6xl">
+            Buy. Sell. Trade.{' '}
+            <span className="text-cyan-300">Securely.</span>
+          </h1>
+          <p className="max-w-xl text-base font-medium text-white/65 md:text-lg">
+            Wholesale, retail &amp; personal listings — all backed by escrow, IMEI verification, and AI-powered support.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              href="/search-marketplace"
+              className="rounded-xl bg-white px-7 py-3 text-sm font-black text-primary shadow-lg transition-all hover:bg-white/90 hover:shadow-xl active:scale-95"
+            >
+              Browse Phones
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-xl border border-white/20 bg-white/10 px-7 py-3 text-sm font-black text-white backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
+            >
+              Start Selling
+            </Link>
+          </div>
         </div>
       </div>
     );

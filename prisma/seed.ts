@@ -1,7 +1,12 @@
 /* eslint-disable */
 const { PrismaClient } = require('../lib/prisma-client')
+const { PrismaPg } = require('@prisma/adapter-pg')
+const { Pool } = require('pg')
 require('dotenv').config({ path: '.env.local' })
-const prisma = new PrismaClient()
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const adapter = new PrismaPg(pool)
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
   const pages = [
@@ -113,21 +118,32 @@ async function main() {
 
           <div>
              <h3 class="font-bold text-gray-900">Phone</h3>
-             <p class="text-gray-600">+1 (555) 123-4567</p>
-             <p class="text-sm text-gray-400">Mon-Fri 9am-6pm CST</p>
+             <p class="text-gray-600">+44 20 1234 5678</p>
+             <p class="text-sm text-gray-400">Mon-Fri 9am-6pm GMT</p>
           </div>
 
           <div>
              <h3 class="font-bold text-gray-900">Office</h3>
              <p class="text-gray-600">
-              123 Tech Avenue, Suite 400<br />
-              Austin, TX 78701
+              1 Tech Street, Suite 400<br />
+              London, EC1A 1BB<br />
+              United Kingdom
              </p>
           </div>
         </div>
       `,
     }
   ]
+
+  console.log('Seeding content pages...')
+  for (const p of pages) {
+    await prisma.contentPage.upsert({
+      where: { slug: p.slug },
+      update: { title: p.title, content: p.content },
+      create: { slug: p.slug, title: p.title, content: p.content, isActive: true },
+    })
+    console.log(`Upserted page: ${p.slug}`)
+  }
 
   console.log('Start seeding system settings...')
   const settings = await prisma.systemSettings.findUnique({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendChatbotMessage } from '@/lib/ai/gemini-api';
+import { sendChatbotMessage as sendGeminiMessage } from '@/lib/ai/gemini-api';
+import { sendGroqMessage } from '@/lib/ai/groq-api';
 import { IChatMessage } from '@/types/chatbot';
 
 export async function POST(request: NextRequest) {
@@ -14,10 +15,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const preferredProvider = process.env.PREFERRED_AI_PROVIDER || 'gemini';
+    
     console.log('Chatbot request received:', {
+      provider: preferredProvider,
       messageLength: message.length,
       historyLength: conversationHistory.length,
-      hasGeminiKey: !!process.env.GEMINI_API_KEY,
     });
 
     const history: IChatMessage[] = conversationHistory.map((msg: IChatMessage) => ({
@@ -26,7 +29,14 @@ export async function POST(request: NextRequest) {
       timestamp: new Date(msg.timestamp || Date.now()),
     }));
 
-    const result = await sendChatbotMessage(message, history);
+    let result;
+    if (preferredProvider === 'groq') {
+      console.log('[Chatbot] Using Groq provider');
+      result = await sendGroqMessage(message, history);
+    } else {
+      console.log('[Chatbot] Using Gemini provider');
+      result = await sendGeminiMessage(message, history);
+    }
 
     console.log('Chatbot response generated:', {
       responseLength: result.response.length,
