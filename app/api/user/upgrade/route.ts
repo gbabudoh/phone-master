@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import prisma from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { UserRole, SellerPlan } from '@prisma/client';
+import { stripe, SUBSCRIPTION_PRICES } from '@/lib/payment';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -30,15 +31,43 @@ export async function POST(request: Request) {
     );
     const userId = payload.userId as string;
 
-    // Determine plan based on role
-    let sellerPlan: SellerPlan = SellerPlan.free;
-    if (role === 'wholesale_seller') {
-      sellerPlan = SellerPlan.wholesale_sub;
-    } else if (role === 'retail_seller') {
-      sellerPlan = SellerPlan.retail_sub;
+    // Handle Paid Upgrades via Stripe
+    if (role === 'retail_seller' || role === 'wholesale_seller') {
+      const priceKey = role === 'retail_seller' ? 'retail_seller' : 'wholesale_seller';
+      const amount = SUBSCRIPTION_PRICES[priceKey];
+
+      const stripeSession = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'gbp',
+              product_data: {
+                name: `${role.replace('_', ' ').toUpperCase()} Plan`,
+                description: `Monthly subscription for ${role.replace('_', ' ')} features`,
+              },
+              unit_amount: amount,
+              recurring: { interval: 'month' },
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings?upgrade=success`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings?upgrade=cancel`,
+        metadata: {
+          userId,
+          newRole: role,
+          storeName: storeName || '',
+          type: 'seller_upgrade'
+        },
+        customer_email: payload.email as string,
+      });
+
+      return NextResponse.json({ url: stripeSession.url });
     }
 
-    // Update user and upsert seller details
+    // Handle Free/Personal Upgrade Immediately
     const user = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -46,25 +75,18 @@ export async function POST(request: Request) {
         sellerDetails: {
           upsert: {
             create: {
-              plan: sellerPlan,
+              plan: SellerPlan.free,
               companyName: storeName || undefined,
               activeListings: 0,
             },
             update: {
-              plan: sellerPlan,
+              plan: SellerPlan.free,
               companyName: storeName || undefined,
             },
           },
         },
       },
-      include: {
-        sellerDetails: true,
-      }
     });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
     return NextResponse.json({ 
       success: true, 

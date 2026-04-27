@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await requireAuth();
     if (session.role !== 'admin') {
@@ -12,12 +12,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch all sellers (personal, retail, wholesale)
+    // Fetch all sellers
     const sellers = await prisma.user.findMany({
       where: {
-        role: {
-          in: ['personal_seller', 'retail_seller', 'wholesale_seller'],
-        },
+        role: { in: ['personal_seller', 'retail_seller', 'wholesale_seller'] },
       },
       include: {
         profile: true,
@@ -26,32 +24,41 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Fetch stats for each seller
-    const sellersWithStats = await Promise.all(
-      sellers.map(async (seller) => {
-        const transactions = await prisma.transaction.findMany({
-          where: { sellerId: seller.id },
-        });
+    const sellerIds = sellers.map(s => s.id);
 
-        const totalSales = transactions.length;
-        const totalEarnings = transactions.reduce((sum, tx) => sum + (tx.netPayout || 0), 0);
+    // Fetch transaction stats for all sellers in one go
+    const transactionStats = await prisma.transaction.groupBy({
+      by: ['sellerId'],
+      where: { sellerId: { in: sellerIds } },
+      _count: { _all: true },
+      _sum: { netPayout: true },
+    });
 
-        const listings = await prisma.product.findMany({
-          where: { sellerId: seller.id },
-        });
+    // Fetch product stats for all sellers in one go
+    const productStats = await prisma.product.groupBy({
+      by: ['sellerId'],
+      where: { 
+        sellerId: { in: sellerIds },
+        status: 'active'
+      },
+      _count: { _all: true },
+    });
 
-        return {
-          ...seller,
-          _id: seller.id,
-          stats: {
-            totalSales,
-            totalEarnings,
-            activeListings: listings.filter((p) => p.status === 'active').length,
-            rating: 4.5, // TODO: Calculate from reviews
-          },
-        };
-      })
-    );
+    const sellersWithStats = sellers.map((seller) => {
+      const txStat = transactionStats.find(s => s.sellerId === seller.id);
+      const prodStat = productStats.find(s => s.sellerId === seller.id);
+
+      return {
+        ...seller,
+        _id: seller.id,
+        stats: {
+          totalSales: txStat?._count._all || 0,
+          totalEarnings: txStat?._sum.netPayout || 0,
+          activeListings: prodStat?._count._all || 0,
+          rating: 4.5, // TODO: Implement review system
+        },
+      };
+    });
 
     return NextResponse.json({ sellers: sellersWithStats });
   } catch (error: unknown) {

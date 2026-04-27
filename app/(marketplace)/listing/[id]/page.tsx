@@ -11,6 +11,7 @@ import {
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
 import { IProduct } from '@/types/product';
+import { usePhoneGenius } from '@/context/PhoneGeniusContext';
 
 interface Seller {
   id: string;
@@ -29,7 +30,12 @@ export default function ListingPage() {
   const params = useParams();
   const router = useRouter();
   const productId = params.id as string;
+  const { preLoadAI } = usePhoneGenius();
   const [product, setProduct] = useState<IProduct | null>(null);
+
+  useEffect(() => {
+    preLoadAI();
+  }, [preLoadAI]);
   const [seller, setSeller] = useState<Seller | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -67,7 +73,7 @@ export default function ListingPage() {
         }
         
         document.title = `${data.product.title} | Phone Master`;
-      } catch (err) {
+      } catch {
         setError('Product not found');
       } finally {
         setLoading(false);
@@ -147,7 +153,7 @@ export default function ListingPage() {
                     <Image src={product.images[selectedImage]} alt={product.title} fill className="object-contain p-8" sizes="(max-width: 768px) 100vw, 60vw" />
                     {/* Watermark */}
                     <div className="absolute bottom-4 right-4 opacity-40">
-                      <img src="/icon.png" alt="" className="h-8 w-8" />
+                      <Image src="/icon.png" alt="" width={32} height={32} className="h-8 w-8" />
                     </div>
                     {product.images.length > 1 && (
                       <>

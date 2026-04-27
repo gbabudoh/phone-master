@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Zap } from 'lucide-react';
+import { MessageCircle, X, Send, Zap, ShieldCheck, Download, ExternalLink } from 'lucide-react';
+import { usePhoneGenius } from '@/context/PhoneGeniusContext';
+import Link from 'next/link';
+import { getSystemPrompt } from '@/lib/ai/prompts';
 
 type Message = { sender: 'user' | 'chatbot'; content: string };
 
@@ -12,6 +15,19 @@ const SUGGESTED = [
 ];
 
 export default function ChatbotButton() {
+  const { 
+    engine, 
+    loadingProgress, 
+    isInitializing, 
+    isWebGPUSupported, 
+    initAI,
+    preLoadAI,
+    askGenius 
+  } = usePhoneGenius();
+
+  useEffect(() => {
+    preLoadAI();
+  }, [preLoadAI]);
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -30,39 +46,48 @@ export default function ChatbotButton() {
 
   const sendMessage = async (text?: string) => {
     const content = (text ?? input).trim();
-    if (!content || loading) return;
+    if (!content || loading || !engine) return;
 
     setInput('');
-    const next: Message[] = [...messages, { sender: 'user', content }];
-    setMessages(next);
+    const userMessage: Message = { sender: 'user', content };
+    setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
 
     try {
-      const response = await fetch('/api/support/chatbot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content, conversationHistory: messages }),
-      });
+      const history = messages.slice(-4).map(msg => ({
+        role: msg.sender === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.content
+      }));
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${response.status}`);
-      }
+      const systemPrompt = getSystemPrompt();
 
-      const data = await response.json();
-      setMessages((prev) => [
-        ...prev,
-        { sender: 'chatbot', content: data.response || 'Sorry, I encountered an error.' },
-      ]);
+      // Placeholder for streaming
+      setMessages((prev) => [...prev, { sender: 'chatbot', content: '' }]);
+
+      await askGenius(
+        [
+          { role: "system", content: systemPrompt },
+          ...history,
+          { role: "user", content: content }
+        ],
+        (updatedContent) => {
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage && lastMessage.sender === 'chatbot') {
+              lastMessage.content = updatedContent;
+            }
+            return newMessages;
+          });
+        }
+      );
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : '';
+      console.error("WebLLM Button Error:", error);
       setMessages((prev) => [
-        ...prev,
+        ...prev.slice(0, -1),
         {
           sender: 'chatbot',
-          content: msg.includes('Failed to fetch')
-            ? 'Network error. Please check your connection.'
-            : 'Sorry, something went wrong. Please try again.',
+          content: 'Sorry, the local AI encountered an error. Please try again.',
         },
       ]);
     } finally {
@@ -83,11 +108,11 @@ export default function ChatbotButton() {
             <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20">
               <MessageCircle className="h-4 w-4 text-white" />
               {/* Online dot */}
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-primary bg-emerald-400" />
+              {engine && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-primary bg-emerald-400" />}
             </div>
             <div className="text-left">
               <p className="text-xs font-black leading-tight">Ask Phone Genius</p>
-              <p className="text-[10px] font-medium text-white/70 leading-tight">AI device assistant</p>
+              <p className="text-[10px] font-medium text-white/70 leading-tight">Private Local AI</p>
             </div>
           </button>
         </div>
@@ -103,16 +128,17 @@ export default function ChatbotButton() {
             <div className="flex items-center gap-3">
               <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
                 <MessageCircle className="h-4.5 w-4.5 text-white" />
-                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-primary bg-emerald-400" />
+                {engine && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-primary bg-emerald-400" />}
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-black text-white">Phone Genius</p>
-                  <span className="rounded-full bg-emerald-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-300">
-                    Online
+                  <span className="flex items-center gap-1 rounded-full bg-white/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white/80">
+                    <ShieldCheck className="h-2 w-2" />
+                    Local
                   </span>
                 </div>
-                <p className="text-[11px] font-medium text-white/60">AI-powered device assistant</p>
+                <p className="text-[11px] font-medium text-white/60">Private technical assistant</p>
               </div>
             </div>
             <button
@@ -129,7 +155,66 @@ export default function ChatbotButton() {
             ref={scrollRef}
             className="flex-1 overflow-y-auto bg-gray-50 px-4 py-4"
           >
-            {messages.length === 0 ? (
+            {!engine ? (
+              <div className="flex h-full flex-col items-center justify-center gap-5 text-center px-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                  <ShieldCheck className="h-7 w-7 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-gray-900 text-balance">Activate Local AI for Absolute Privacy</p>
+                  <p className="mt-1 text-[11px] font-medium text-gray-500">
+                    Phone Genius now runs locally on your device hardware.
+                  </p>
+                </div>
+                
+                {isWebGPUSupported === false ? (
+                  <div className="rounded-xl bg-amber-50 p-4 text-left border border-amber-100 flex flex-col gap-2">
+                    <p className="text-[10px] font-black text-amber-900 uppercase">Hardware Issue</p>
+                    <p className="text-[10px] font-semibold text-amber-800 leading-relaxed">
+                      This browser doesn&apos;t support WebGPU, which is required for our private Local AI.
+                    </p>
+                    <Link 
+                      href="/support/chatbot" 
+                      onClick={() => setIsOpen(false)}
+                      className="text-[9px] font-bold text-amber-900 underline underline-offset-2"
+                    >
+                      Learn more in Support Center
+                    </Link>
+                  </div>
+                ) : isInitializing ? (
+                   <div className="w-full space-y-3">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                      <span>Downloading Model</span>
+                      <span>{loadingProgress}%</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300"
+                        style={{ width: `${loadingProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 w-full">
+                    <button
+                      onClick={initAI}
+                      className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-xs font-black text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark active:scale-95"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Initialize AI (~600MB)
+                    </button>
+                    <Link 
+                      href="/support/chatbot"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center justify-center gap-1.5 py-1 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View Full Chat Experience
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ) : messages.length === 0 ? (
               <div className="flex flex-col items-center gap-5 pt-3 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                   <Zap className="h-6 w-6 text-primary" />
@@ -137,7 +222,7 @@ export default function ChatbotButton() {
                 <div>
                   <p className="text-sm font-black text-gray-900">Hi! I&apos;m Phone Genius</p>
                   <p className="mt-1 text-xs font-medium text-gray-500">
-                    Ask me anything about mobile devices, IMEI checks, or how this marketplace works.
+                    Ask me anything about mobile devices or how this marketplace works.
                   </p>
                 </div>
                 <div className="w-full space-y-2">
@@ -205,13 +290,13 @@ export default function ChatbotButton() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about any device..."
+                placeholder={engine ? "Ask about any device..." : "AI Not Initialized"}
                 className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs font-medium text-gray-900 placeholder-gray-400 outline-none transition-all focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/10 disabled:opacity-60"
-                disabled={loading}
+                disabled={loading || !engine}
               />
               <button
                 type="submit"
-                disabled={loading || !input.trim()}
+                disabled={loading || !input.trim() || !engine}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-all hover:bg-primary-dark active:scale-95 disabled:opacity-40"
               >
                 <Send className="h-3.5 w-3.5" />

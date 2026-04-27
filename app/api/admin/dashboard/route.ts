@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const session = await requireAuth();
     if (session.role !== 'admin') {
@@ -12,35 +12,45 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    // Fetch all stats
-    const [users, sellers, products, transactions] = await Promise.all([
-      prisma.user.findMany(),
-      prisma.user.findMany({
+    // Fetch all stats efficiently
+    const [
+      userCount,
+      sellerCount,
+      productCount,
+      transactionCount,
+      revenueResult,
+      pendingSellersCount
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({
         where: {
           role: { in: ['personal_seller', 'retail_seller', 'wholesale_seller'] },
           status: 'active',
         },
       }),
-      prisma.product.findMany(),
-      prisma.transaction.findMany(),
+      prisma.product.count(),
+      prisma.transaction.count(),
+      prisma.transaction.aggregate({
+        _sum: {
+          commissionFee: true,
+        },
+      }),
+      prisma.user.count({
+        where: {
+          role: { in: ['personal_seller', 'retail_seller', 'wholesale_seller'] },
+          status: 'pending_verification',
+        },
+      }),
     ]);
-
-    const totalRevenue = transactions.reduce((sum, tx) => sum + (tx.commissionFee || 0), 0);
-    const pendingSellers = await prisma.user.findMany({
-      where: {
-        role: { in: ['personal_seller', 'retail_seller', 'wholesale_seller'] },
-        status: 'pending_verification',
-      },
-    });
 
     return NextResponse.json({
       stats: {
-        totalUsers: users.length,
-        totalSellers: sellers.length,
-        totalProducts: products.length,
-        totalTransactions: transactions.length,
-        totalRevenue,
-        pendingApprovals: pendingSellers.length,
+        totalUsers: userCount,
+        totalSellers: sellerCount,
+        totalProducts: productCount,
+        totalTransactions: transactionCount,
+        totalRevenue: revenueResult._sum.commissionFee || 0,
+        pendingApprovals: pendingSellersCount,
       },
     });
   } catch (error: unknown) {

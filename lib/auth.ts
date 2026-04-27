@@ -9,8 +9,11 @@ interface SessionPayload {
   expiresAt: Date;
 }
 
-const secretKey = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const key = new TextEncoder().encode(secretKey);
+const secretKey = process.env.JWT_SECRET;
+if (!secretKey && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET must be set in production');
+}
+const key = new TextEncoder().encode(secretKey || 'your-secret-key-change-in-production');
 
 export async function encrypt(payload: Record<string, unknown>) {
   return await new SignJWT(payload)
@@ -83,6 +86,6 @@ export function hasRole(userRole: UserRole, requiredRoles: UserRole[]): boolean 
 }
 
 export function isAdmin(role: UserRole): boolean {
-  return role === 'wholesale_seller'; // Or create a separate admin role
+  return role === 'admin';
 }
 

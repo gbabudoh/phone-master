@@ -1,20 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Heart, Trash2, ShoppingCart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
+import { IProduct } from '@/types/product';
 
 export default function WishlistPage() {
-  const [wishlist, setWishlist] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [wishlist, setWishlist] = useState<IProduct[]>([]);
+  const [loading] = useState(false);
 
   useEffect(() => {
     // Fetch wishlist - placeholder for now
-    setLoading(false);
   }, []);
 
-  const handleRemove = (id: string) => {
+  const handleRemove = (id?: string) => {
+    if (!id) return;
     setWishlist(wishlist.filter(item => item._id !== id));
   };
 
@@ -22,17 +24,19 @@ export default function WishlistPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">My Wishlist</h1>
-        <p className="mt-2 text-foreground/60">Items you've saved for later</p>
+        <p className="mt-2 text-foreground/60">Items you&apos;ve saved for later</p>
       </div>
 
       {loading ? (
         <div className="py-12 text-center"><p className="text-foreground/60">Loading...</p></div>
       ) : wishlist.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {wishlist.map((item) => (
-            <div key={item._id} className="rounded-lg border border-accent-grey/20 bg-white overflow-hidden">
+          {wishlist.map((item, index) => (
+            <div key={item._id || index} className="rounded-lg border border-accent-grey/20 bg-white overflow-hidden">
               {item.images && item.images[0] && (
-                <img src={item.images[0]} alt={item.title} className="h-48 w-full object-cover" />
+                <div className="relative h-48 w-full">
+                  <Image src={item.images[0]} alt={item.title} fill className="object-cover" />
+                </div>
               )}
               <div className="p-4">
                 <h3 className="font-semibold text-foreground">{item.title}</h3>

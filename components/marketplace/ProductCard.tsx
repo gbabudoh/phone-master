@@ -81,7 +81,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
           )}
           {/* Watermark */}
           <div className="absolute bottom-2 right-2 opacity-40">
-            <img src="/icon.png" alt="" className="h-5 w-5" />
+            <Image src="/icon.png" alt="" width={20} height={20} className="h-5 w-5" />
           </div>
           {product.status === 'sold' && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -169,7 +169,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
         
         {/* Watermark */}
         <div className="absolute bottom-2 right-2 opacity-40">
-          <img src="/icon.png" alt="" className="h-5 w-5" />
+          <Image src="/icon.png" alt="" width={20} height={20} className="h-5 w-5" />
         </div>
         
         {/* Sold Overlay */}

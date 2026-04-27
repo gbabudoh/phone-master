@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Plus, Edit, Trash2, Eye, EyeOff, Search, Package } from 'lucide-react';
 import { IProduct } from '@/types/product';
 import { formatPrice } from '@/lib/utils';
@@ -123,9 +124,11 @@ export default function InventoryPage() {
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="flex items-center space-x-3">
                       {product.images && product.images.length > 0 && (
-                        <img
+                        <Image
                           src={product.images[0]}
                           alt={product.title}
+                          width={48}
+                          height={48}
                           className="h-12 w-12 rounded object-contain bg-gray-50"
                         />
                       )}
